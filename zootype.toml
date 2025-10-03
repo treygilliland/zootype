@@ -1,0 +1,6 @@
+# zootype configuration
+
+# Which binary to run when calling 'zootype'
+# Options: gophertype, pythontype
+binary = "gophertype"
+

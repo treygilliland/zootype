@@ -1,0 +1,14 @@
+[project]
+name = "pythontype"
+version = "0.1.0"
+description = "Terminal-based typing trainer for Python."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+pythontype = "pythontype:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
