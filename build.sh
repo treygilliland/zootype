@@ -4,8 +4,8 @@ set -e
 # Usage: ./build.sh [build|install|uninstall] [languages...]
 #
 # To add a new language:
-# 1. Add it to LANGUAGES list
-# 2. Create a build_<name>() function below
+# 1. Add it to LANGUAGES list below
+# 2. Create a build_<name>() function below that
 
 LANGUAGES="gophertype pythontype"
 
@@ -14,6 +14,8 @@ BIN_DIR="$SCRIPT_DIR/bin"
 
 build_gophertype() {
     echo "Building gophertype..."
+    mkdir -p "$SCRIPT_DIR/gophertype/data"
+    cp "$SCRIPT_DIR/data/top-1000-words.txt" "$SCRIPT_DIR/gophertype/data/top-1000-words.txt"
     cd "$SCRIPT_DIR/gophertype"
     go build -o "$BIN_DIR/gophertype" main.go
 }
