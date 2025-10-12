@@ -16,6 +16,7 @@ const (
 	keyCtrlC     = 3   // ASCII code for Ctrl+C (interrupt)
 	keyDelete    = 127 // DEL key - commonly sent by backspace on Unix/Mac
 	keyBackspace = 8   // BS key - sent by backspace on some terminals
+	keyEscape    = 27  // ESC key
 )
 
 // TypingState tracks typing session state. Maintains two accuracy metrics:
@@ -152,6 +153,12 @@ func runTypingSession(state *TypingState, keyChan <-chan byte) {
 			return
 		}
 
+		// Ignore escape sequences (arrow keys, function keys, etc.)
+		if key == keyEscape {
+			drainEscapeSequence(keyChan)
+			continue
+		}
+
 		if isBackspace(key) {
 			handleBackspace(state)
 			state.displayMutex.Lock()
@@ -168,7 +175,23 @@ func runTypingSession(state *TypingState, keyChan <-chan byte) {
 }
 
 func isInterrupt(key byte) bool {
-	return key == keyCtrlC || key == 113 || key == 81 // Ctrl+C, 'q', or 'Q'
+	return key == keyCtrlC // Only Ctrl+C during typing
+}
+
+// drainEscapeSequence consumes remaining bytes from an escape sequence.
+// Most escape sequences are 2-3 bytes (ESC [ X), but some can be longer.
+func drainEscapeSequence(keyChan <-chan byte) {
+	// Use a timeout to avoid blocking indefinitely
+	timeout := time.After(10 * time.Millisecond)
+
+	// Consume up to 10 bytes or until timeout
+	for i := 0; i < 10; i++ {
+		select {
+		case <-keyChan:
+		case <-timeout:
+			return
+		}
+	}
 }
 
 func isBackspace(key byte) bool {
@@ -189,6 +212,9 @@ func handleBackspace(state *TypingState) {
 	if !state.charCorrectness[state.position] {
 		state.currentErrors--
 	}
+
+	// Reset the correctness flag so it's recalculated on next keystroke
+	state.charCorrectness[state.position] = false
 }
 
 // handleKeystroke processes character input. Space enables word-skipping.
