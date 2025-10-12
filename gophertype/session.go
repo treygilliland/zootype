@@ -37,6 +37,7 @@ type TypingState struct {
 	currentCharsTyped int    // Decremented on backspace
 	totalKeystrokes   int    // Never decremented
 	charCorrectness   []bool // Per-character correctness for coloring
+	charTyped         []bool // Tracks which characters were actually typed (not skipped)
 	backspaceCount    int
 	startTime         time.Time
 	lastLineCount     int           // Lines in previous display (for clearing)
@@ -57,7 +58,8 @@ func newTypingState(target string, config Config, termWidth int) *TypingState {
 	return &TypingState{
 		sessionText:     target,
 		charCorrectness: make([]bool, len(target)),
-		startTime:       time.Time{}, // Will be set when typing actually starts
+		charTyped:       make([]bool, len(target)),
+		startTime:       time.Time{},
 		timeLimit:       timeLimit,
 		isTimedMode:     isTimedMode,
 		terminalWidth:   termWidth,
@@ -132,11 +134,12 @@ func startKeyboardReader() <-chan byte {
 	return keyChan
 }
 
-// Action constants for promptToContinue return values
+// Action constants for session control
 const (
-	ActionExit  = 0
-	ActionRetry = 1
-	ActionNext  = 2
+	ActionExit      = 0
+	ActionRetry     = 1
+	ActionNext      = 2
+	ActionInterrupt = 3 // Ctrl+C pressed during typing
 )
 
 // promptToContinue asks the user what to do next.
@@ -162,7 +165,12 @@ func promptToContinue(keyChan <-chan byte) int {
 
 // runTypingSession is the main event loop, reading keystrokes and updating display.
 // Takes a channel that provides keyboard input.
-func runTypingSession(state *TypingState, keyChan <-chan byte) {
+// Returns an action to take based on user input.
+func runTypingSession(state *TypingState, keyChan <-chan byte) int {
+	// Clear screen and display header
+	fmt.Print(ansiClearScreen + ansiCursorHome)
+	fmt.Printf("%sgophertype%s\n\n", ansiBlue, ansiReset)
+
 	// Start the timer when typing actually begins
 	state.startTime = time.Now()
 
@@ -198,9 +206,10 @@ func runTypingSession(state *TypingState, keyChan <-chan byte) {
 	for {
 		// Check if we've reached the end of text (only in non-timed mode)
 		if !state.isTimedMode && state.position >= len(state.sessionText) {
+			fmt.Print("\r\n\r\n")
 			results := NewResults(state)
 			results.Print()
-			return
+			return ActionNext
 		}
 
 		// In timed mode, if we've reached the end of text, extend it
@@ -212,19 +221,19 @@ func runTypingSession(state *TypingState, keyChan <-chan byte) {
 		var key byte
 		select {
 		case <-timeUp:
-			fmt.Print("\n")
+			fmt.Print("\r\n\r\n")
 			results := NewResults(state)
 			results.Print()
-			return
+			return ActionNext
 		case key = <-keyChan:
 			// Process the key below
 		}
 
 		if isInterrupt(key) {
-			fmt.Print("\n")
+			fmt.Print("\r\n\r\n")
 			results := NewResults(state)
 			results.Print()
-			return
+			return ActionInterrupt
 		}
 
 		// Ignore escape sequences (arrow keys, function keys, etc.)
@@ -289,12 +298,15 @@ func handleBackspace(state *TypingState) {
 	state.currentCharsTyped--
 	state.backspaceCount++
 
-	if !state.charCorrectness[state.position] {
+	// Only decrement currentErrors if this character was actually typed incorrectly
+	// (not just marked incorrect from skipping)
+	if !state.charCorrectness[state.position] && state.charTyped[state.position] {
 		state.currentErrors--
 	}
 
-	// Reset the correctness flag so it's recalculated on next keystroke
+	// Reset flags so they're recalculated on next keystroke
 	state.charCorrectness[state.position] = false
+	state.charTyped[state.position] = false
 }
 
 // handleKeystroke processes character input. Space enables word-skipping.
@@ -312,6 +324,7 @@ func handleKeystroke(state *TypingState, key byte) {
 		return
 	}
 
+	state.charTyped[state.position] = true
 	if char == string(state.sessionText[state.position]) {
 		state.charCorrectness[state.position] = true
 	} else {
@@ -326,6 +339,7 @@ func handleKeystroke(state *TypingState, key byte) {
 func handleSpace(state *TypingState) {
 	if state.position < len(state.sessionText) && state.sessionText[state.position] == ' ' {
 		state.charCorrectness[state.position] = true
+		state.charTyped[state.position] = true
 		state.position++
 	} else {
 		if canSkipWord(state) {
@@ -359,10 +373,10 @@ func skipToNextWord(state *TypingState) {
 }
 
 // markRangeIncorrect marks range [start, end) as incorrect and updates counters.
+// Only increments totalErrors (raw accuracy), not currentErrors (correctable errors).
 func markRangeIncorrect(state *TypingState, start, end int) {
 	for j := start; j < end; j++ {
 		state.charCorrectness[j] = false
-		state.currentErrors++
 		state.totalErrors++
 	}
 }
@@ -384,10 +398,15 @@ func extendTextForTimedMode(state *TypingState) {
 	newText := " " + strings.Join(newWords, " ")
 	state.sessionText += newText
 
-	// Extend the charCorrectness slice
+	// Extend the charCorrectness and charTyped slices
 	oldLen := len(state.charCorrectness)
 	newLen := oldLen + len(newText)
+
 	newCorrectness := make([]bool, newLen)
 	copy(newCorrectness, state.charCorrectness)
 	state.charCorrectness = newCorrectness
+
+	newTyped := make([]bool, newLen)
+	copy(newTyped, state.charTyped)
+	state.charTyped = newTyped
 }

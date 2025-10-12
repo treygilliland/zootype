@@ -55,16 +55,16 @@ func run() error {
 // wants new text or exits. Returns true if user wants next text, false if exiting.
 func runSessionLoop(target string, config Config, termWidth int, keyChan <-chan byte) bool {
 	for {
-		// Clear screen at start of each session
-		fmt.Print(ansiClearScreen + ansiCursorHome)
-
 		state := newTypingState(target, config, termWidth)
 
-		fmt.Printf("%sgophertype%s\n\n", ansiBlue, ansiReset)
+		action := runTypingSession(state, keyChan)
 
-		runTypingSession(state, keyChan)
+		// If interrupted with Ctrl+C, exit immediately
+		if action == ActionInterrupt {
+			return false
+		}
 
-		action := promptToContinue(keyChan)
+		action = promptToContinue(keyChan)
 
 		switch action {
 		case ActionExit:
