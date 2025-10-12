@@ -14,9 +14,17 @@ import (
 // Terminal control constants
 const (
 	keyCtrlC     = 3   // ASCII code for Ctrl+C (interrupt)
-	keyDelete    = 127 // DEL key - commonly sent by backspace on Unix/Mac
 	keyBackspace = 8   // BS key - sent by backspace on some terminals
+	keyEnter     = 10  // Line feed (Unix/Mac Enter key)
+	keyReturn    = 13  // Carriage return (Windows Enter key)
 	keyEscape    = 27  // ESC key
+	keyUpperN    = 78  // 'N' key
+	keyUpperQ    = 81  // 'Q' key
+	keyUpperR    = 82  // 'R' key
+	keyLowerN    = 110 // 'n' key
+	keyLowerQ    = 113 // 'q' key
+	keyLowerR    = 114 // 'r' key
+	keyDelete    = 127 // DEL key - commonly sent by backspace on Unix/Mac
 )
 
 // TypingState tracks typing session state. Maintains two accuracy metrics:
@@ -35,10 +43,11 @@ type TypingState struct {
 	timeLimit         time.Duration // Time limit for timed mode (0 = no limit)
 	isTimedMode       bool          // Whether this is a timed session
 	displayMutex      sync.Mutex    // Synchronizes display updates
+	terminalWidth     int           // Terminal width for text wrapping
 }
 
 // newTypingState initializes a new typing session with the given target text.
-func newTypingState(target string, config Config) *TypingState {
+func newTypingState(target string, config Config, termWidth int) *TypingState {
 	isTimedMode := config.TimeSeconds > 0
 	var timeLimit time.Duration
 	if isTimedMode {
@@ -51,6 +60,7 @@ func newTypingState(target string, config Config) *TypingState {
 		startTime:       time.Time{}, // Will be set when typing actually starts
 		timeLimit:       timeLimit,
 		isTimedMode:     isTimedMode,
+		terminalWidth:   termWidth,
 	}
 }
 
@@ -71,21 +81,82 @@ func enableRawMode() (func(), error) {
 	return restore, nil
 }
 
-// promptToContinue asks the user to press Enter to play again or q/Esc to exit.
-// Returns true to play again, false to exit.
+// getTerminalWidth returns the terminal width, or error if it can't be determined.
+func getTerminalWidth() (int, error) {
+	width, _, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil {
+		return 0, err
+	}
+	return width, nil
+}
+
+// setupTerminalWidth detects and validates terminal width for display.
+// Returns the width to use (capped at 80, minimum 25), or error if terminal too narrow.
+func setupTerminalWidth() (int, error) {
+	const (
+		minWidth = 25
+		maxWidth = 80
+	)
+
+	termWidth, err := getTerminalWidth()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get terminal size: %w", err)
+	}
+
+	if termWidth < minWidth {
+		return 0, fmt.Errorf("terminal too narrow: %d chars (minimum %d chars required)", termWidth, minWidth)
+	}
+
+	if termWidth > maxWidth {
+		termWidth = maxWidth
+	}
+
+	return termWidth, nil
+}
+
+// startKeyboardReader starts a goroutine that reads keyboard input byte-by-byte
+// and sends it to the returned channel. This goroutine runs for the program's lifetime.
+func startKeyboardReader() <-chan byte {
+	keyChan := make(chan byte)
+
+	go func() {
+		buf := make([]byte, 1)
+		for {
+			if _, err := os.Stdin.Read(buf); err != nil {
+				return
+			}
+			keyChan <- buf[0]
+		}
+	}()
+
+	return keyChan
+}
+
+// Action constants for promptToContinue return values
+const (
+	ActionExit  = 0
+	ActionRetry = 1
+	ActionNext  = 2
+)
+
+// promptToContinue asks the user what to do next.
+// Returns ActionNext (n/Enter), ActionRetry (r), or ActionExit (q).
 // Takes a channel that provides keyboard input.
-func promptToContinue(keyChan <-chan byte) bool {
-	fmt.Printf("\n%sPress Enter to play again or q/Esc to exit...%s", ansiBlue, ansiReset)
+func promptToContinue(keyChan <-chan byte) int {
+	fmt.Printf("\n%s(n)ext, (r)etry, (q)uit%s", ansiBlue, ansiReset)
 
 	for {
 		key := <-keyChan
 
-		if key == 13 || key == 10 { // Enter key
-			return true
+		switch key {
+		case keyEnter, keyReturn, keyLowerN, keyUpperN:
+			return ActionNext
+		case keyLowerR, keyUpperR:
+			return ActionRetry
+		case keyLowerQ, keyUpperQ:
+			return ActionExit
 		}
-		if key == 27 || key == 113 || key == 81 { // Esc, 'q', or 'Q'
-			return false
-		}
+		// Ignore other keys (including Esc)
 	}
 }
 
@@ -184,14 +255,20 @@ func isInterrupt(key byte) bool {
 // drainEscapeSequence consumes remaining bytes from an escape sequence.
 // Most escape sequences are 2-3 bytes (ESC [ X), but some can be longer.
 func drainEscapeSequence(keyChan <-chan byte) {
-	// Use a timeout to avoid blocking indefinitely
-	timeout := time.After(10 * time.Millisecond)
+	const (
+		escapeTimeout = 10 * time.Millisecond
+		maxEscapeLen  = 10
+	)
 
-	// Consume up to 10 bytes or until timeout
-	for i := 0; i < 10; i++ {
+	timeout := time.After(escapeTimeout)
+
+	// Consume up to maxEscapeLen bytes or until timeout
+	for i := 0; i < maxEscapeLen; i++ {
 		select {
 		case <-keyChan:
+			// Consumed one byte of the sequence
 		case <-timeout:
+			// No more bytes available, sequence is complete
 			return
 		}
 	}

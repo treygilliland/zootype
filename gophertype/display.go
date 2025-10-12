@@ -8,13 +8,22 @@ import (
 
 // ANSI escape codes for terminal colors and formatting
 const (
-	ansiReset      = "\033[0m"
-	ansiGreen      = "\033[32m"
-	ansiRed        = "\033[31m"
-	ansiBlue       = "\033[34m"
-	ansiYellow     = "\033[33m"
-	ansiBold       = "\033[1m"
-	ansiClearToEOL = "\033[K" // Clear from cursor to end of line
+	ansiReset       = "\033[0m"
+	ansiGreen       = "\033[32m"
+	ansiRed         = "\033[31m"
+	ansiBlue        = "\033[34m"
+	ansiYellow      = "\033[33m"
+	ansiBold        = "\033[1m"
+	ansiClearToEOL  = "\033[K"  // Clear from cursor to end of line
+	ansiClearScreen = "\033[2J" // Clear entire screen
+	ansiCursorUp    = "\033[A"  // Move cursor up one line
+	ansiCursorHome  = "\033[H"  // Move cursor to home position (0,0)
+)
+
+// Display configuration constants
+const (
+	maxVisibleLines = 3 // Number of text lines shown in scrolling window
+	cursorWidth     = 1 // Characters reserved for cursor display
 )
 
 // wrappedLine represents a single display line with word-wrapping applied.
@@ -38,9 +47,10 @@ func displayProgress(state *TypingState) {
 		buffer.WriteString(formatTimer(state))
 	}
 
-	// Render text lines
-	lines := wrapTextToLines(state.sessionText, state.position, 80)
-	startLine, endLine := calculateVisibleWindow(lines, 3)
+	// Render text lines (reserve space for cursor)
+	lineWidth := state.terminalWidth - cursorWidth
+	lines := wrapTextToLines(state.sessionText, state.position, lineWidth)
+	startLine, endLine := calculateVisibleWindow(lines, maxVisibleLines)
 	buffer.WriteString(renderLines(lines[startLine:endLine], state))
 
 	// Single atomic write to terminal
@@ -64,7 +74,7 @@ func buildClearSequence(lineCount int) string {
 	output.WriteString("\r")
 	// Move up lineCount-1 lines (we're already on the last line)
 	for i := 0; i < lineCount-1; i++ {
-		output.WriteString("\033[A") // Move up one line
+		output.WriteString(ansiCursorUp)
 	}
 	return output.String()
 }
