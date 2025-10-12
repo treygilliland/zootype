@@ -39,10 +39,10 @@ func NewResults(state *TypingState) *Results {
 
 // Print displays results. Uses \r\n for proper line breaks in raw mode.
 func (r *Results) Print() {
-	fmt.Print("\r\n\r\nResults:\r\n")
+	fmt.Printf("\r\n\r\n%sResults:%s\r\n", ansiBlue, ansiReset)
 	fmt.Printf("  Accuracy:     %.1f%%\r\n", r.Accuracy)
 	fmt.Printf("  Raw Accuracy: %.1f%%\r\n", r.RawAccuracy)
-	fmt.Printf("  Duration:     %.1fs\r\n", r.Duration.Seconds())
+	fmt.Printf("  Duration:     %ds\r\n", int(r.Duration.Seconds()))
 	fmt.Printf("  WPM:          %.1f\r\n", r.WPM)
 	fmt.Printf("  Backspaces:   %d\r\n", r.BackspaceCount)
 	fmt.Printf("  Errors:       %d\r\n", r.CurrentErrors)

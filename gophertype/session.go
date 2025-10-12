@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
+	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/term"
@@ -27,15 +30,26 @@ type TypingState struct {
 	charCorrectness   []bool // Per-character correctness for coloring
 	backspaceCount    int
 	startTime         time.Time
-	lastLineCount     int // Lines in previous display (for clearing)
+	lastLineCount     int           // Lines in previous display (for clearing)
+	timeLimit         time.Duration // Time limit for timed mode (0 = no limit)
+	isTimedMode       bool          // Whether this is a timed session
+	displayMutex      sync.Mutex    // Synchronizes display updates
 }
 
 // newTypingState initializes a new typing session with the given target text.
-func newTypingState(target string) *TypingState {
+func newTypingState(target string, config Config) *TypingState {
+	isTimedMode := config.TimeSeconds > 0
+	var timeLimit time.Duration
+	if isTimedMode {
+		timeLimit = time.Duration(config.TimeSeconds) * time.Second
+	}
+
 	return &TypingState{
 		sessionText:     target,
 		charCorrectness: make([]bool, len(target)),
-		startTime:       time.Now(),
+		startTime:       time.Time{}, // Will be set when typing actually starts
+		timeLimit:       timeLimit,
+		isTimedMode:     isTimedMode,
 	}
 }
 
@@ -56,18 +70,80 @@ func enableRawMode() (func(), error) {
 	return restore, nil
 }
 
+// promptToContinue asks the user to press Enter to play again or q/Esc to exit.
+// Returns true to play again, false to exit.
+// Takes a channel that provides keyboard input.
+func promptToContinue(keyChan <-chan byte) bool {
+	fmt.Printf("\n%sPress Enter to play again or q/Esc to exit...%s", ansiBlue, ansiReset)
+
+	for {
+		key := <-keyChan
+
+		if key == 13 || key == 10 { // Enter key
+			return true
+		}
+		if key == 27 || key == 113 || key == 81 { // Esc, 'q', or 'Q'
+			return false
+		}
+	}
+}
+
 // runTypingSession is the main event loop, reading keystrokes and updating display.
-func runTypingSession(state *TypingState) {
+// Takes a channel that provides keyboard input.
+func runTypingSession(state *TypingState, keyChan <-chan byte) {
+	// Start the timer when typing actually begins
+	state.startTime = time.Now()
+
+	// Channel to signal when time is up
+	timeUp := make(chan bool)
+
+	// Start timer goroutine for timed mode
+	if state.isTimedMode {
+		go func() {
+			ticker := time.NewTicker(100 * time.Millisecond) // Update every 100ms
+			defer ticker.Stop()
+
+			for {
+				<-ticker.C
+				// Check if time is up
+				if time.Since(state.startTime) >= state.timeLimit {
+					timeUp <- true
+					return
+				}
+				// Update display with mutex to prevent flicker
+				state.displayMutex.Lock()
+				displayProgress(state)
+				state.displayMutex.Unlock()
+			}
+		}()
+	}
+
 	displayProgress(state)
 
-	buf := make([]byte, 1)
-	for state.position < len(state.sessionText) {
-		if _, err := os.Stdin.Read(buf); err != nil {
-			fmt.Fprintf(os.Stderr, "\nRead error: %v\n", err)
+	for {
+		// Check if we've reached the end of text (only in non-timed mode)
+		if !state.isTimedMode && state.position >= len(state.sessionText) {
+			results := NewResults(state)
+			results.Print()
 			return
 		}
 
-		key := buf[0]
+		// In timed mode, if we've reached the end of text, extend it
+		if state.isTimedMode && state.position >= len(state.sessionText) {
+			extendTextForTimedMode(state)
+		}
+
+		// Wait for either keyboard input or timer expiration
+		var key byte
+		select {
+		case <-timeUp:
+			fmt.Print("\n")
+			results := NewResults(state)
+			results.Print()
+			return
+		case key = <-keyChan:
+			// Process the key below
+		}
 
 		if isInterrupt(key) {
 			fmt.Print("\n")
@@ -78,20 +154,21 @@ func runTypingSession(state *TypingState) {
 
 		if isBackspace(key) {
 			handleBackspace(state)
+			state.displayMutex.Lock()
 			displayProgress(state)
+			state.displayMutex.Unlock()
 			continue
 		}
 
 		handleKeystroke(state, key)
+		state.displayMutex.Lock()
 		displayProgress(state)
+		state.displayMutex.Unlock()
 	}
-
-	results := NewResults(state)
-	results.Print()
 }
 
 func isInterrupt(key byte) bool {
-	return key == keyCtrlC
+	return key == keyCtrlC || key == 113 || key == 81 // Ctrl+C, 'q', or 'Q'
 }
 
 func isBackspace(key byte) bool {
@@ -182,4 +259,29 @@ func markRangeIncorrect(state *TypingState, start, end int) {
 		state.currentErrors++
 		state.totalErrors++
 	}
+}
+
+// extendTextForTimedMode adds more text to the session when in timed mode.
+func extendTextForTimedMode(state *TypingState) {
+	// Generate more words to extend the text
+	words, err := loadTopWords()
+	if err != nil {
+		return // If we can't load words, just return
+	}
+
+	// Add 100 more words
+	var newWords []string
+	for i := 0; i < 100; i++ {
+		newWords = append(newWords, words[rand.Intn(len(words))])
+	}
+
+	newText := " " + strings.Join(newWords, " ")
+	state.sessionText += newText
+
+	// Extend the charCorrectness slice
+	oldLen := len(state.charCorrectness)
+	newLen := oldLen + len(newText)
+	newCorrectness := make([]bool, newLen)
+	copy(newCorrectness, state.charCorrectness)
+	state.charCorrectness = newCorrectness
 }

@@ -17,7 +17,7 @@ build_gophertype() {
     mkdir -p "$SCRIPT_DIR/gophertype/data"
     cp "$SCRIPT_DIR/data/top-1000-words.txt" "$SCRIPT_DIR/gophertype/data/top-1000-words.txt"
     cd "$SCRIPT_DIR/gophertype"
-    go build -o "$BIN_DIR/gophertype" main.go
+    go build -o "$BIN_DIR/gophertype" *.go
 }
 
 build_pythontype() {

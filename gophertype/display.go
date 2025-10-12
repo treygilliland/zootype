@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
 // ANSI escape codes for terminal colors and formatting
@@ -26,7 +27,17 @@ type wrappedLine struct {
 // displayProgress renders color-coded typing progress with word-wrapping
 // in a 3-line scrolling window. Uses double-buffering to prevent flicker.
 func displayProgress(state *TypingState) {
-	clearPreviousDisplay(state.lastLineCount)
+	// Always move to start of line to ensure proper alignment
+	if state.lastLineCount == 0 {
+		fmt.Print("\r")
+	} else {
+		clearPreviousDisplay(state.lastLineCount)
+	}
+
+	// Show timer if in timed mode
+	if state.isTimedMode {
+		displayTimer(state)
+	}
 
 	lines := wrapTextToLines(state.sessionText, state.position, 80)
 	startLine, endLine := calculateVisibleWindow(lines, 3)
@@ -34,16 +45,41 @@ func displayProgress(state *TypingState) {
 
 	fmt.Print(output)
 	state.lastLineCount = endLine - startLine
+	if state.isTimedMode {
+		state.lastLineCount++ // Account for timer line
+	}
 }
 
 // clearPreviousDisplay moves cursor up and clears previous output.
 func clearPreviousDisplay(lineCount int) {
 	if lineCount > 0 {
+		// Move cursor to start of line first
+		fmt.Print("\r")
+		// Move up lineCount-1 lines (we're already on the last line)
 		for i := 0; i < lineCount-1; i++ {
 			fmt.Print("\033[A") // Move up one line
 		}
-		fmt.Print("\r\033[J") // Clear from cursor down
+		// Clear from cursor to end of screen
+		fmt.Print("\033[J")
 	}
+}
+
+// displayTimer shows the countdown timer for timed mode.
+func displayTimer(state *TypingState) {
+	elapsed := time.Since(state.startTime)
+	remaining := state.timeLimit - elapsed
+
+	if remaining <= 0 {
+		remaining = 0
+	}
+
+	// Round up to the next second
+	seconds := int(remaining.Seconds())
+	if remaining.Milliseconds()%1000 > 0 {
+		seconds++
+	}
+
+	fmt.Printf("%s%d%s\r\n", ansiBlue, seconds, ansiReset)
 }
 
 // wrapTextToLines splits text into display lines with word-boundary wrapping.

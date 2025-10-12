@@ -33,31 +33,37 @@ const (
 
 // Config holds runtime configuration with priority: CLI flags > config file > defaults.
 type Config struct {
-	TextSource TextSource `json:"text_source"`
-	WordCount  int        `json:"word_count"`
+	TextSource  TextSource `json:"text_source"`
+	WordCount   int        `json:"word_count"`
+	TimeSeconds int        `json:"time_seconds"`
 }
 
 // JSONConfig represents the zootype.json file structure.
 type JSONConfig struct {
-	Binary     string `json:"binary"`
-	TextSource string `json:"text_source"`
-	WordCount  int    `json:"word_count"`
+	Binary      string `json:"binary"`
+	TextSource  string `json:"text_source"`
+	WordCount   int    `json:"word_count"`
+	TimeSeconds int    `json:"time_seconds"`
 }
 
 // loadConfig loads configuration with priority: CLI flags > config file > defaults.
 func loadConfig() (Config, error) {
 	var textSource string
 	var wordCount int
+	var timeSeconds int
 
 	flag.StringVar(&textSource, "source", "", "Text source: words or sentences")
 	flag.StringVar(&textSource, "s", "", "Text source: words or sentences (shorthand)")
 	flag.IntVar(&wordCount, "words", 0, "Number of words to practice")
 	flag.IntVar(&wordCount, "w", 0, "Number of words to practice (shorthand)")
+	flag.IntVar(&timeSeconds, "time", 0, "Time limit in seconds for timed mode")
+	flag.IntVar(&timeSeconds, "t", 0, "Time limit in seconds for timed mode (shorthand)")
 	flag.Parse()
 
 	config := Config{
-		TextSource: defaultTextSource,
-		WordCount:  defaultWordCount,
+		TextSource:  defaultTextSource,
+		WordCount:   defaultWordCount,
+		TimeSeconds: 0,
 	}
 
 	// Override with config file if present
@@ -70,6 +76,9 @@ func loadConfig() (Config, error) {
 			if fileConfig.WordCount > 0 {
 				config.WordCount = fileConfig.WordCount
 			}
+			if fileConfig.TimeSeconds > 0 {
+				config.TimeSeconds = fileConfig.TimeSeconds
+			}
 		}
 	}
 
@@ -79,6 +88,9 @@ func loadConfig() (Config, error) {
 	}
 	if wordCount > 0 {
 		config.WordCount = wordCount
+	}
+	if timeSeconds > 0 {
+		config.TimeSeconds = timeSeconds
 	}
 
 	return config, nil
@@ -135,9 +147,15 @@ func loadJSONConfig(path string) (*JSONConfig, error) {
 func getSessionText(config Config) (string, error) {
 	switch config.TextSource {
 	case TextSourceSentences:
+		if config.TimeSeconds > 0 {
+			return generateInfiniteSentences(), nil
+		}
 		sentences := defaultSentences()
 		return sentences[rand.Intn(len(sentences))], nil
 	case TextSourceWords:
+		if config.TimeSeconds > 0 {
+			return generateInfiniteWordText()
+		}
 		return generateWordText(config.WordCount)
 	default:
 		return "", fmt.Errorf("unknown text source: %s", config.TextSource)
@@ -191,4 +209,37 @@ func defaultSentences() []string {
 		"How vexingly quick daft zebras jump!",
 		"Sphinx of black quartz, judge my vow.",
 	}
+}
+
+// generateInfiniteWordText creates an infinitely long text by repeating words.
+func generateInfiniteWordText() (string, error) {
+	words, err := loadTopWords()
+	if err != nil {
+		return "", err
+	}
+
+	if len(words) == 0 {
+		return "", fmt.Errorf("no words available")
+	}
+
+	// Generate a very long text by repeating words
+	var selectedWords []string
+	for i := 0; i < 1000; i++ { // Generate 1000 words initially
+		selectedWords = append(selectedWords, words[rand.Intn(len(words))])
+	}
+
+	return strings.Join(selectedWords, " "), nil
+}
+
+// generateInfiniteSentences creates an infinitely long text by repeating sentences.
+func generateInfiniteSentences() string {
+	sentences := defaultSentences()
+	var selectedSentences []string
+
+	// Generate a very long text by repeating sentences
+	for i := 0; i < 100; i++ { // Generate 100 sentences initially
+		selectedSentences = append(selectedSentences, sentences[rand.Intn(len(sentences))])
+	}
+
+	return strings.Join(selectedSentences, " ")
 }
