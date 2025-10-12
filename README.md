@@ -89,13 +89,14 @@ make clean      # removes bin/
 I love programming languages and keyboards.
 I've spent a lot of time on [monkeytype](https://monkeytype.com/) and wanted a way to practice from my terminal.
 
-Writing an interactive CLI showcases a language's functionality well:
+Writing an interactive CLI showcases a language's functionality and ecosystem well:
 
 - Terminal and File I/O (raw mode, ANSI escape codes)
 - String manipulation and character-by-character processing
 - Real-time state management
 - Time tracking and calculations
 - Performance (must be responsive for typing feedback)
+- Build systems and runtimes
 
 ## Languages
 
