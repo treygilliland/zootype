@@ -101,20 +101,23 @@ func runTypingSession(state *TypingState, keyChan <-chan byte) {
 	// Start timer goroutine for timed mode
 	if state.isTimedMode {
 		go func() {
-			ticker := time.NewTicker(100 * time.Millisecond) // Update every 100ms
-			defer ticker.Stop()
+			displayTicker := time.NewTicker(1 * time.Second) // Update display every second
+			defer displayTicker.Stop()
+
+			timeUpTimer := time.After(state.timeLimit)
 
 			for {
-				<-ticker.C
-				// Check if time is up
-				if time.Since(state.startTime) >= state.timeLimit {
+				select {
+				case <-timeUpTimer:
+					// Time is up (fires once at exact duration)
 					timeUp <- true
 					return
+				case <-displayTicker.C:
+					// Update display every second (when countdown value changes)
+					state.displayMutex.Lock()
+					displayProgress(state)
+					state.displayMutex.Unlock()
 				}
-				// Update display with mutex to prevent flicker
-				state.displayMutex.Lock()
-				displayProgress(state)
-				state.displayMutex.Unlock()
 			}
 		}()
 	}

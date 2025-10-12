@@ -8,12 +8,13 @@ import (
 
 // ANSI escape codes for terminal colors and formatting
 const (
-	ansiReset  = "\033[0m"
-	ansiGreen  = "\033[32m"
-	ansiRed    = "\033[31m"
-	ansiBlue   = "\033[34m"
-	ansiYellow = "\033[33m"
-	ansiBold   = "\033[1m"
+	ansiReset      = "\033[0m"
+	ansiGreen      = "\033[32m"
+	ansiRed        = "\033[31m"
+	ansiBlue       = "\033[34m"
+	ansiYellow     = "\033[33m"
+	ansiBold       = "\033[1m"
+	ansiClearToEOL = "\033[K" // Clear from cursor to end of line
 )
 
 // wrappedLine represents a single display line with word-wrapping applied.
@@ -25,47 +26,51 @@ type wrappedLine struct {
 }
 
 // displayProgress renders color-coded typing progress with word-wrapping
-// in a 3-line scrolling window. Uses double-buffering to prevent flicker.
+// in a 3-line scrolling window. Buffers all output to prevent flicker.
 func displayProgress(state *TypingState) {
-	// Always move to start of line to ensure proper alignment
-	if state.lastLineCount == 0 {
-		fmt.Print("\r")
-	} else {
-		clearPreviousDisplay(state.lastLineCount)
-	}
+	var buffer strings.Builder
 
-	// Show timer if in timed mode
+	// Build cursor positioning sequence
+	buffer.WriteString(buildClearSequence(state.lastLineCount))
+
+	// Add timer if in timed mode
 	if state.isTimedMode {
-		displayTimer(state)
+		buffer.WriteString(formatTimer(state))
 	}
 
+	// Render text lines
 	lines := wrapTextToLines(state.sessionText, state.position, 80)
 	startLine, endLine := calculateVisibleWindow(lines, 3)
-	output := renderLines(lines[startLine:endLine], state)
+	buffer.WriteString(renderLines(lines[startLine:endLine], state))
 
-	fmt.Print(output)
+	// Single atomic write to terminal
+	fmt.Print(buffer.String())
+
+	// Update line count for next render
 	state.lastLineCount = endLine - startLine
 	if state.isTimedMode {
 		state.lastLineCount++ // Account for timer line
 	}
 }
 
-// clearPreviousDisplay moves cursor up and clears previous output.
-func clearPreviousDisplay(lineCount int) {
-	if lineCount > 0 {
-		// Move cursor to start of line first
-		fmt.Print("\r")
-		// Move up lineCount-1 lines (we're already on the last line)
-		for i := 0; i < lineCount-1; i++ {
-			fmt.Print("\033[A") // Move up one line
-		}
-		// Clear from cursor to end of screen
-		fmt.Print("\033[J")
+// buildClearSequence generates cursor positioning commands to prepare for redraw.
+func buildClearSequence(lineCount int) string {
+	if lineCount == 0 {
+		return "\r"
 	}
+
+	var output strings.Builder
+	// Move cursor to start of line first
+	output.WriteString("\r")
+	// Move up lineCount-1 lines (we're already on the last line)
+	for i := 0; i < lineCount-1; i++ {
+		output.WriteString("\033[A") // Move up one line
+	}
+	return output.String()
 }
 
-// displayTimer shows the countdown timer for timed mode.
-func displayTimer(state *TypingState) {
+// formatTimer returns the countdown timer string for timed mode.
+func formatTimer(state *TypingState) string {
 	elapsed := time.Since(state.startTime)
 	remaining := state.timeLimit - elapsed
 
@@ -79,7 +84,7 @@ func displayTimer(state *TypingState) {
 		seconds++
 	}
 
-	fmt.Printf("%s%d%s\r\n", ansiBlue, seconds, ansiReset)
+	return fmt.Sprintf("%s%d%s%s\r\n", ansiBlue, seconds, ansiReset, ansiClearToEOL)
 }
 
 // wrapTextToLines splits text into display lines with word-boundary wrapping.
@@ -217,6 +222,9 @@ func renderLines(lines []wrappedLine, state *TypingState) string {
 		if line.hasCursor && line.cursorPosition >= len(line.content) {
 			output.WriteString(ansiYellow + ansiBold + "|" + ansiReset)
 		}
+
+		// Clear to end of line to remove any leftover characters
+		output.WriteString(ansiClearToEOL)
 
 		// Add newline between lines
 		if lineIdx < len(lines)-1 {
