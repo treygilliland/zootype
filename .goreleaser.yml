@@ -37,7 +37,7 @@ blobs:
     bucket: zootype
     region: auto
     endpoint: https://{{ .Env.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
-    folder: "releases/{{ .Version }}"
+    directory: "releases/{{ .Version }}"
     extra_files:
       - glob: ./dist/*.tar.gz
 
@@ -47,7 +47,7 @@ brews:
       owner: treygilliland
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    folder: Formula
+    directory: Formula
     homepage: https://github.com/treygilliland/zootype
     description: "Terminal-based typing practice tool with real-time WPM and accuracy tracking"
     license: MIT
