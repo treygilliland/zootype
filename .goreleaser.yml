@@ -17,6 +17,8 @@ builds:
     goarch:
       - amd64
       - arm64
+    flags:
+      - -trimpath
     ldflags:
       - -s -w
       - -X main.version={{.Version}}
@@ -42,8 +44,7 @@ blobs:
       - glob: ./dist/*.tar.gz
 
 brews:
-  - name: gophertype
-    repository:
+  - repository:
       owner: treygilliland
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
