@@ -1,5 +1,7 @@
 version: 2
 
+project_name: gophertype
+
 before:
   hooks:
     - sh -c "cd gophertype && go mod tidy"
@@ -28,7 +30,7 @@ builds:
 archives:
   - id: gophertype
     name_template: >-
-      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+      gophertype_{{ .Version }}_{{ .Os }}_{{ .Arch }}
     files:
       - LICENSE
       - README.md
@@ -77,4 +79,4 @@ release:
     name: zootype
   draft: false
   prerelease: auto
-  name_template: "{{.ProjectName}} v{{.Version}}"
+  name_template: "gophertype v{{.Version}}"
