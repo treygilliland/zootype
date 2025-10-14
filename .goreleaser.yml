@@ -34,7 +34,8 @@ archives:
     files:
       - LICENSE
       - README.md
-      - gophertype/README.md
+      - src: gophertype/README.md
+        dst: GOPHERTYPE_README.md
 
 blobs:
   - provider: s3
