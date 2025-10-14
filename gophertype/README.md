@@ -44,19 +44,36 @@ gophertype --version    # show version information
 
 ## Configuration
 
-Configuration via `zootype.json` in project root or current directory:
+**gophertype works out-of-the-box with sensible defaults** - no configuration needed!
 
-```json
+Default behavior:
+
+- 30 second timed mode
+- Random words from top 1000 English words
+- 50 words (when using word count mode with `-w`)
+
+### Optional Config File
+
+To customize defaults, create `~/.config/gophertype/config.json`:
+
+```bash
+mkdir -p ~/.config/gophertype
+cat > ~/.config/gophertype/config.json << 'EOF'
 {
   "text_source": "words",
   "word_count": 50,
   "time_seconds": 30
 }
+EOF
 ```
 
-**Note:** If both `time_seconds` and `word_count` are set, `time_seconds` takes precedence (timed mode). To use word count mode, set `time_seconds` to 0.
+**Available options:**
 
-CLI flags override config file settings.
+- `text_source`: `"words"` or `"sentences"`
+- `word_count`: Number of words for untimed mode
+- `time_seconds`: Duration for timed mode (0 disables timer)
+
+**Note:** If both `time_seconds` and `word_count` are set, `time_seconds` takes precedence. CLI flags override config file settings.
 
 ## Features
 

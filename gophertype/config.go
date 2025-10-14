@@ -21,7 +21,6 @@ const (
 	defaultTextSource  = TextSourceWords
 	defaultWordCount   = 50
 	defaultTimeSeconds = 30
-	configFileName     = "zootype.json"
 )
 
 // Command-line flags
@@ -74,18 +73,16 @@ func loadConfig() (Config, error) {
 	}
 
 	// Override with config file if present
-	configPath, err := findConfigFile()
-	if err == nil {
-		if fileConfig, err := loadJSONConfig(configPath); err == nil {
-			if fileConfig.TextSource != "" {
-				config.TextSource = TextSource(fileConfig.TextSource)
-			}
-			if fileConfig.WordCount > 0 {
-				config.WordCount = fileConfig.WordCount
-			}
-			if fileConfig.TimeSeconds > 0 {
-				config.TimeSeconds = fileConfig.TimeSeconds
-			}
+	configPath := getConfigPath()
+	if fileConfig, err := loadJSONConfig(configPath); err == nil {
+		if fileConfig.TextSource != "" {
+			config.TextSource = TextSource(fileConfig.TextSource)
+		}
+		if fileConfig.WordCount > 0 {
+			config.WordCount = fileConfig.WordCount
+		}
+		if fileConfig.TimeSeconds > 0 {
+			config.TimeSeconds = fileConfig.TimeSeconds
 		}
 	}
 
@@ -119,39 +116,20 @@ func loadConfig() (Config, error) {
 	return config, nil
 }
 
-// findConfigFile searches for zootype.json relative to the executable
-// (two dirs up) or by walking up from the current directory.
-func findConfigFile() (string, error) {
-	// Check project root (executable is at zootype/bin/gophertype)
-	exePath, err := os.Executable()
+// getConfigPath returns the standard config file path.
+// Uses XDG Base Directory specification: ~/.config/gophertype/config.json
+func getConfigPath() string {
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return "", err
+		// Fallback to current directory if home can't be determined
+		return "config.json"
 	}
 
-	projectRoot := filepath.Dir(filepath.Dir(exePath))
-	configPath := filepath.Join(projectRoot, configFileName)
-
-	if _, err := os.Stat(configPath); err == nil {
-		return configPath, nil
-	}
-
-	// Walk up from current directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-
-	for dir := cwd; dir != "/" && dir != "."; dir = filepath.Dir(dir) {
-		configPath := filepath.Join(dir, configFileName)
-		if _, err := os.Stat(configPath); err == nil {
-			return configPath, nil
-		}
-	}
-
-	return "", fmt.Errorf("config file not found")
+	configDir := filepath.Join(homeDir, ".config", "gophertype")
+	return filepath.Join(configDir, "config.json")
 }
 
-// loadJSONConfig reads and parses zootype.json.
+// loadJSONConfig reads and parses the config file.
 func loadJSONConfig(path string) (*JSONConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
