@@ -53,11 +53,10 @@ brews:
     description: "Terminal-based typing practice tool with real-time WPM and accuracy tracking"
     license: MIT
     url_template: "https://pub-6085c325f09e4e99bb69108db6dd11a5.r2.dev/releases/{{ .Version }}/{{ .ArtifactName }}"
-    download_strategy: CurlDownloadStrategy
-    test: |
-      system "#{bin}/gophertype", "--version"
     install: |
       bin.install "gophertype"
+    test: |
+      system "#{bin}/gophertype", "--version"
 
 checksum:
   name_template: "checksums.txt"
