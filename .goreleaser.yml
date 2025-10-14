@@ -8,7 +8,7 @@ before:
 builds:
   - id: gophertype
     dir: gophertype
-    main: ./main.go
+    main: .
     binary: gophertype
     env:
       - CGO_ENABLED=0
@@ -25,9 +25,6 @@ builds:
 
 archives:
   - id: gophertype
-    format_overrides:
-      - goos: windows
-        format: zip
     name_template: >-
       {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
     files:
@@ -45,7 +42,8 @@ blobs:
       - glob: ./dist/*.tar.gz
 
 brews:
-  - repository:
+  - name: gophertype
+    repository:
       owner: treygilliland
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
