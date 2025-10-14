@@ -11,17 +11,29 @@ import (
 	"strings"
 )
 
-// Configuration defaults
-const (
-	defaultTextSource = TextSourceWords
-	defaultWordCount  = 50
-	configFileName    = "zootype.json"
-)
-
 // topWordsData is embedded at compile time via go:embed.
 //
 //go:embed data/top-1000-words.txt
 var topWordsData string
+
+// Configuration defaults
+const (
+	defaultTextSource  = TextSourceWords
+	defaultWordCount   = 50
+	defaultTimeSeconds = 30
+	configFileName     = "zootype.json"
+)
+
+// Command-line flags
+var (
+	timeSeconds      = flag.Int("time", 0, "Timed mode: type for N seconds (default: 30, takes precedence)")
+	timeSecondsShort = flag.Int("t", 0, "Timed mode: type for N seconds (default: 30, takes precedence)")
+	wordCount        = flag.Int("words", 0, "Word count mode: complete N words, untimed")
+	wordCountShort   = flag.Int("w", 0, "Word count mode: complete N words, untimed")
+	textSource       = flag.String("source", "", "Text source: words or sentences")
+	textSourceShort  = flag.String("s", "", "Text source: words or sentences")
+	showVersion      = flag.Bool("version", false, "Print version information")
+)
 
 // TextSource represents the type of text used for typing practice.
 type TextSource string
@@ -48,22 +60,17 @@ type JSONConfig struct {
 
 // loadConfig loads configuration with priority: CLI flags > config file > defaults.
 func loadConfig() (Config, error) {
-	var textSource string
-	var wordCount int
-	var timeSeconds int
-
-	flag.StringVar(&textSource, "source", "", "Text source: words or sentences")
-	flag.StringVar(&textSource, "s", "", "Text source: words or sentences (shorthand)")
-	flag.IntVar(&wordCount, "words", 0, "Number of words to practice")
-	flag.IntVar(&wordCount, "w", 0, "Number of words to practice (shorthand)")
-	flag.IntVar(&timeSeconds, "time", 0, "Time limit in seconds for timed mode")
-	flag.IntVar(&timeSeconds, "t", 0, "Time limit in seconds for timed mode (shorthand)")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("gophertype %s (commit: %s, built: %s)\n", version, commit, date)
+		os.Exit(0)
+	}
 
 	config := Config{
 		TextSource:  defaultTextSource,
 		WordCount:   defaultWordCount,
-		TimeSeconds: 0,
+		TimeSeconds: defaultTimeSeconds,
 	}
 
 	// Override with config file if present
@@ -83,15 +90,31 @@ func loadConfig() (Config, error) {
 	}
 
 	// CLI flags take highest priority
-	if textSource != "" {
-		config.TextSource = TextSource(textSource)
+	if *textSource != "" {
+		config.TextSource = TextSource(*textSource)
+	} else if *textSourceShort != "" {
+		config.TextSource = TextSource(*textSourceShort)
 	}
-	if wordCount > 0 {
-		config.WordCount = wordCount
+
+	// Handle mutually exclusive modes: -t (timed) takes precedence over -w (word count)
+	timeFlag := *timeSeconds
+	if *timeSecondsShort > 0 {
+		timeFlag = *timeSecondsShort
 	}
-	if timeSeconds > 0 {
-		config.TimeSeconds = timeSeconds
+	wordFlag := *wordCount
+	if *wordCountShort > 0 {
+		wordFlag = *wordCountShort
 	}
+
+	if timeFlag > 0 {
+		// Timed mode explicitly requested - takes precedence
+		config.TimeSeconds = timeFlag
+	} else if wordFlag > 0 {
+		// Word count mode - disable timer
+		config.WordCount = wordFlag
+		config.TimeSeconds = 0
+	}
+	// Otherwise use defaults (30 second timed mode)
 
 	return config, nil
 }

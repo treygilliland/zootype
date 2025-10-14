@@ -66,17 +66,23 @@ func newTypingState(target string, config Config, termWidth int) *TypingState {
 	}
 }
 
-// enableRawMode enables raw terminal mode for immediate keystroke capture.
-// Returns a restore function that must be deferred to restore normal mode.
-func enableRawMode() (func(), error) {
+// setupTerminal enables alternate screen buffer and raw terminal mode.
+// Returns a restore function that must be deferred to restore normal terminal state.
+func setupTerminal() (func(), error) {
+	// Enable alternate screen buffer (doesn't affect scrollback)
+	fmt.Print(ansiAltScreenEnable)
+
+	// Enable raw mode for character-by-character input
 	fd := int(os.Stdin.Fd())
 	oldState, err := term.MakeRaw(fd)
 	if err != nil {
+		fmt.Print(ansiAltScreenDisable) // Restore screen on error
 		return nil, err
 	}
 
 	restore := func() {
 		_ = term.Restore(fd, oldState)
+		fmt.Print(ansiAltScreenDisable) // Restore original screen
 		fmt.Print("\r\n")
 	}
 
@@ -92,9 +98,9 @@ func getTerminalWidth() (int, error) {
 	return width, nil
 }
 
-// setupTerminalWidth detects and validates terminal width for display.
+// getAndValidateTerminalWidth detects and validates terminal width for display.
 // Returns the width to use (capped at 80, minimum 25), or error if terminal too narrow.
-func setupTerminalWidth() (int, error) {
+func getAndValidateTerminalWidth() (int, error) {
 	const (
 		minWidth = 25
 		maxWidth = 80
@@ -146,6 +152,9 @@ const (
 // Returns ActionNext (n/Enter), ActionRetry (r), or ActionExit (q).
 // Takes a channel that provides keyboard input.
 func promptToContinue(keyChan <-chan byte) int {
+	// Drain any buffered keypresses to prevent accidental triggering
+	drainChannel(keyChan, 500*time.Millisecond)
+
 	fmt.Printf("\n%s(n)ext, (r)etry, (q)uit%s", ansiBlue, ansiReset)
 
 	for {
@@ -278,6 +287,20 @@ func drainEscapeSequence(keyChan <-chan byte) {
 			// Consumed one byte of the sequence
 		case <-timeout:
 			// No more bytes available, sequence is complete
+			return
+		}
+	}
+}
+
+// drainChannel consumes all buffered input from the channel for a given timeout.
+// Used to clear accidental keypresses before prompting user.
+func drainChannel(keyChan <-chan byte, timeout time.Duration) {
+	deadline := time.After(timeout)
+	for {
+		select {
+		case <-keyChan:
+			// swallow the keypress
+		case <-deadline:
 			return
 		}
 	}

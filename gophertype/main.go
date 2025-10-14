@@ -2,7 +2,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 )
@@ -15,14 +14,6 @@ var (
 
 // main entry point
 func main() {
-	versionFlag := flag.Bool("version", false, "Print version information")
-	flag.Parse()
-
-	if *versionFlag {
-		fmt.Printf("gophertype %s (commit: %s, built: %s)\n", version, commit, date)
-		os.Exit(0)
-	}
-
 	if err := run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
@@ -37,15 +28,15 @@ func run() error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	// Enable raw mode for character-by-character input; defer ensures cleanup
-	restore, err := enableRawMode()
+	// Set up terminal (alternate screen buffer + raw mode); defer ensures cleanup
+	restore, err := setupTerminal()
 	if err != nil {
-		return fmt.Errorf("failed to enable raw mode: %w", err)
+		return fmt.Errorf("failed to setup terminal: %w", err)
 	}
 	defer restore()
 
 	// Use terminal width for display, erroring if it's too narrow
-	termWidth, err := setupTerminalWidth()
+	termWidth, err := getAndValidateTerminalWidth()
 	if err != nil {
 		return err
 	}
@@ -56,7 +47,7 @@ func run() error {
 	for {
 		target, err := getSessionText(config)
 		if err != nil {
-			return fmt.Errorf("failed to get session text: %w", err)
+			return fmt.Errorf("failed to load session text: %w", err)
 		}
 
 		// Run sessions with current target until user wants new text or exits

@@ -8,16 +8,18 @@ import (
 
 // ANSI escape codes for terminal colors and formatting
 const (
-	ansiReset       = "\033[0m"
-	ansiGreen       = "\033[32m"
-	ansiRed         = "\033[31m"
-	ansiBlue        = "\033[34m"
-	ansiYellow      = "\033[33m"
-	ansiBold        = "\033[1m"
-	ansiClearToEOL  = "\033[K"  // Clear from cursor to end of line
-	ansiClearScreen = "\033[2J" // Clear entire screen
-	ansiCursorUp    = "\033[A"  // Move cursor up one line
-	ansiCursorHome  = "\033[H"  // Move cursor to home position (0,0)
+	ansiReset            = "\033[0m"
+	ansiGreen            = "\033[32m"
+	ansiRed              = "\033[31m"
+	ansiBlue             = "\033[34m"
+	ansiYellow           = "\033[33m"
+	ansiBold             = "\033[1m"
+	ansiClearToEOL       = "\033[K"      // Clear from cursor to end of line
+	ansiClearScreen      = "\033[2J"     // Clear entire screen
+	ansiCursorUp         = "\033[A"      // Move cursor up one line
+	ansiCursorHome       = "\033[H"      // Move cursor to home position (0,0)
+	ansiAltScreenEnable  = "\033[?1049h" // Enable alternate screen buffer
+	ansiAltScreenDisable = "\033[?1049l" // Disable alternate screen buffer
 )
 
 // Display configuration constants

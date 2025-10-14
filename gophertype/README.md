@@ -20,18 +20,26 @@ go build -o gophertype .
 ## Usage
 
 ```bash
-gophertype              # start typing practice (default: 50 words)
-gophertype -w 100       # practice with 100 words
-gophertype -s sentences # practice with sentences instead of words
+gophertype              # start typing practice (default: 30 second timed mode)
+gophertype -w 100       # practice with 100 words (untimed)
+gophertype -s sentences # practice with sentences
 gophertype -t 60        # timed mode (60 seconds)
 gophertype --version    # show version information
 ```
 
 ### Flags
 
-- `-w`, `--words <N>`: Number of words to practice (default: 50)
+**Mode Selection (mutually exclusive):**
+
+- `-t`, `--time <N>`: Timed mode - type as many words as possible in N seconds (default: 30, takes precedence)
+- `-w`, `--words <N>`: Word count mode - complete N words, untimed
+
+**Text Options:**
+
 - `-s`, `--source <TYPE>`: Text source - `words` or `sentences` (default: words)
-- `-t`, `--time <N>`: Time limit in seconds for timed mode
+
+**Other:**
+
 - `--version`: Print version information
 
 ## Configuration
@@ -42,9 +50,11 @@ Configuration via `zootype.json` in project root or current directory:
 {
   "text_source": "words",
   "word_count": 50,
-  "time_seconds": 0
+  "time_seconds": 30
 }
 ```
+
+**Note:** If both `time_seconds` and `word_count` are set, `time_seconds` takes precedence (timed mode). To use word count mode, set `time_seconds` to 0.
 
 CLI flags override config file settings.
 
