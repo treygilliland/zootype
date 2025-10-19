@@ -1,16 +1,16 @@
 .PHONY: build run clean install uninstall
 
 build:
-	@./build.sh build
+	@./zootype.sh build
 
 run: build
-	@ZOOTYPE_CONFIG=zootype.toml ZOOTYPE_BIN_DIR=bin ./zootype.sh
+	@ZOOTYPE_BIN_DIR=bin ./zootype.sh
 
 install:
-	@./build.sh install
+	@./zootype.sh install
 
 uninstall:
-	@./build.sh uninstall
+	@./zootype.sh uninstall
 
 clean:
 	rm -rf bin

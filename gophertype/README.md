@@ -1,6 +1,8 @@
 # gophertype
 
-Terminal-based typing practice tool with real-time WPM and accuracy tracking.
+Go implementation of zootype - a terminal-based typing test.
+
+Part of the [zootype project](https://github.com/treygilliland/zootype).
 
 ## Installation
 
@@ -8,6 +10,7 @@ Terminal-based typing practice tool with real-time WPM and accuracy tracking.
 
 ```bash
 brew install treygilliland/tap/gophertype
+gophertype
 ```
 
 ### From Source
@@ -15,74 +18,42 @@ brew install treygilliland/tap/gophertype
 ```bash
 cd gophertype
 go build -o gophertype .
+./gophertype
 ```
 
 ## Usage
 
-```bash
-gophertype              # start typing practice (default: 30 second timed mode)
-gophertype -w 100       # practice with 100 words (untimed)
-gophertype -s sentences # practice with sentences
-gophertype -t 60        # timed mode (60 seconds)
-gophertype --version    # show version information
-```
+See the [main zootype README](../README.md#usage) for complete CLI documentation and usage examples.
 
-### Flags
-
-**Mode Selection (mutually exclusive):**
-
-- `-t`, `--time <N>`: Timed mode - type as many words as possible in N seconds (default: 30, takes precedence)
-- `-w`, `--words <N>`: Word count mode - complete N words, untimed
-
-**Text Options:**
-
-- `-s`, `--source <TYPE>`: Text source - `words` or `sentences` (default: words)
-
-**Other:**
-
-- `--version`: Print version information
-
-## Configuration
-
-**gophertype works out-of-the-box with sensible defaults** - no configuration needed!
-
-Default behavior:
-
-- 30 second timed mode
-- Random words from top 1000 English words
-- 50 words (when using word count mode with `-w`)
-
-### Optional Config File
-
-To customize defaults, create `~/.config/gophertype/config.json`:
+Quick start:
 
 ```bash
-mkdir -p ~/.config/gophertype
-cat > ~/.config/gophertype/config.json << 'EOF'
-{
-  "text_source": "words",
-  "word_count": 50,
-  "time_seconds": 30
-}
-EOF
+gophertype              # 30 second timed mode with random words
+gophertype -t 60        # 60 second timed mode
+gophertype -w 50        # type 50 words, untimed
+gophertype -v           # show version
 ```
 
-**Available options:**
+## Implementation Details
 
-- `text_source`: `"words"` or `"sentences"`
-- `word_count`: Number of words for untimed mode
-- `time_seconds`: Duration for timed mode (0 disables timer)
+**Language:** Go 1.21+
 
-**Note:** If both `time_seconds` and `word_count` are set, `time_seconds` takes precedence. CLI flags override config file settings.
+**Key Features:**
 
-## Features
+- Raw terminal I/O via `golang.org/x/term`
+- Concurrent goroutines for input/display management
+- Word list embedded at compile time via `go:embed`
+- Zero external dependencies (only Go stdlib + x/term)
+- Alternate screen buffer to preserve terminal history
+- ANSI escape sequences for color and cursor control
 
-- **Real-time feedback**: Color-coded input (green=correct, red=error, yellow=cursor)
-- **Accuracy tracking**: Corrected and raw accuracy metrics
-- **WPM calculation**: Words per minute based on standard 5-character words
-- **Timed mode**: Practice against the clock
-- **Backspace support**: Correct mistakes as you type
-- **Interrupt with Ctrl+C**: View results before completion
+**Architecture:**
+
+- `config.go` - CLI flags and configuration
+- `session.go` - Main typing test loop and terminal handling
+- `stats.go` - WPM and accuracy calculations
+- `display.go` - Terminal rendering and ANSI codes
+- `main.go` - Entry point
 
 ## Development
 
@@ -95,11 +66,15 @@ go build -o bin/gophertype .
 
 # Test
 go test ./...
+
+# Run from zootype root with wrapper
+cd ..
+make
+zootype -b gophertype
 ```
 
-## Implementation Notes
+## Dependencies
 
-- Raw terminal mode via `golang.org/x/term`
-- Word list embedded at compile time via `go:embed`
-- Minimal dependencies for fast builds and small binaries
-- Goroutine-based keyboard input handling
+```
+golang.org/x/term  # Terminal control and raw mode
+```

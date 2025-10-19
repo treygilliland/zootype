@@ -1,108 +1,122 @@
 # zootype
 
-Minimal typing test CLI written in many languages.
+![gophertype demo](images/gophertype.gif)
 
-Perfect for practicing between builds or agent prompts.
+Terminal-based typing test to improve your typing speed without context-switching from your IDE.
 
 ## Overview
 
-Terminal-based typing trainer with raw mode input and real-time feedback.
+`zootype` is a suite of terminal-based typing test implementations, each written from scratch in a different programming language. The goal is to explore how different languages and ecosystems approach the same technical challenges.
 
 **Features:**
 
-- Color-coded feedback (green=correct, red=error, yellow cursor, gray=remaining)
-- Live accuracy tracking (corrected & raw)
-- WPM calculation
-- Backspace support
-- CTRL-C to view results early
-
-## Goals
-
-- No frameworks and minimal dependencies
-  - Lightweight binaries and fast builds
-  - Highlights the "zen" of each language
-  - Readable and extendable by anyone
-- Minimal and customizable out of the box
-  - Single configuration file
-  - Works in any terminal that supports ASCII + ANSI color codes
+- Color-coded real-time feedback
+- Typing test metrics (wpm, accuracy, etc.)
+- Configurable via CLI flags
+- Alternate terminal buffer to keep your history clean
+- Works in any terminal that supports ASCII + ANSI color codes
 
 ## Installation
 
-```bash
-make install  # builds and installs zootype to ~/.local/bin
-zootype       # run from anywhere!
-```
-
-## Configuration
-
-`zootype` uses a simple TOML config file to specify which language implementation to run.
-
-Example configuration:
-
-```toml
-# Which binary to run when calling 'zootype'
-# Options: gophertype, pythontype
-binary = "gophertype"
-```
-
-**Config locations:**
-
-- Development: `zootype.toml` in project root (when using `make run`)
-- Installed: `~/.config/zootype/zootype.toml` (when using `zootype` command)
-
-**Quick config edit:**
+Each language implementation can be installed separately via Homebrew:
 
 ```bash
-zootype config  # opens config file in your $EDITOR
+# Install gophertype (Go implementation)
+brew install treygilliland/tap/gophertype
+gophertype
+
+# More implementations coming soon...
 ```
 
 ## Usage
 
-### CLI
+### gophertype
 
-After running `make install`, use the `zootype` command from anywhere:
+Basic usage with defaults (30 second timed mode with random words):
 
 ```bash
-zootype         # start typing practice
-zootype config  # edit config file
-zootype build   # rebuild and reinstall binaries from source
+gophertype
 ```
 
-### Development
+**Mode Selection (mutually exclusive):**
+
+- `-t, --time <N>` - Timed mode: type for N seconds (default: 30)
+- `-w, --words <N>` - Word count mode: complete N words, untimed
+
+**Text Options:**
+
+- `-s, --source <TYPE>` - Text source: `words` or `sentences` (default: words)
+
+**Other:**
+
+- `-v, --version` - Print version information
+- `-h, --help` - Show usage information
+
+**Examples:**
 
 ```bash
-make            # builds all binaries to bin/
-make run        # builds and runs binary specified in zootype.toml
-make install    # builds and installs to ~/.local/bin
-make uninstall  # removes from ~/.local/bin
-make clean      # removes bin/
+gophertype              # default: 30 second timed mode with words
+gophertype -t 60        # 60 second timed mode
+gophertype -w 50        # type 50 words, untimed
+gophertype -s sentences # use sentences instead of words
+gophertype -t 120 -s sentences  # 2 minute test with sentences
+```
 
-# Low-level: use build.sh directly
-./build.sh                    # defaults to 'build'
-./build.sh build pythontype   # build specific binary
-./build.sh install            # builds and installs
-./build.sh uninstall          # uninstalls
+**Note:** All future implementations (pythontype, crabtype, etc.) will maintain the same CLI API for consistency.
+
+## Development
+
+### Building
+
+```bash
+make            # build all binaries to bin/
+make run        # build and run gophertype
+make clean      # remove bin/ and build artifacts
+```
+
+### Testing Multiple Implementations
+
+Install the `zootype` development wrapper to easily switch between implementations:
+
+```bash
+make install    # install zootype wrapper to ~/.local/bin
+```
+
+The `zootype` wrapper runs binaries from your local `bin/` directory, so it won't conflict with Homebrew installations:
+
+```bash
+zootype -b gophertype     # run bin/gophertype (your dev build)
+zootype -b pythontype     # run bin/pythontype (your dev build)
+gophertype                # your Homebrew installation (unchanged)
+```
+
+To uninstall the wrapper:
+
+```bash
+make uninstall  # removes zootype wrapper only
 ```
 
 ## Motivation
 
-I love programming languages and keyboards.
-I've spent a lot of time on [monkeytype](https://monkeytype.com/) and wanted a way to practice from my terminal.
+I love exploring new programming languages and tinkering with keyboards. I've spent a lot of time on [monkeytype.com](https://monkeytype.com/) and wanted a way to practice typing speed directly from my terminal without context-switching.
 
-Writing an interactive CLI showcases a language's functionality and ecosystem well:
+The name is a nod to monkeytype and how lots of programming languages have animal mascots. Building the same interactive CLI in multiple languages is a great way to compare:
 
-- Terminal and File I/O (raw mode, ANSI escape codes)
-- String manipulation and character-by-character processing
-- Real-time state management
-- Time tracking and calculations
-- Performance (must be responsive for typing feedback)
-- Build systems and runtimes
+- How each language handles raw terminal I/O and ANSI escape sequences
+- Concurrency models for managing user input and display updates
+- String manipulation and real-time character processing
+- Performance characteristics (must be responsive for typing)
+- Build systems, runtimes, and packaging ecosystems
 
-## Languages
+Each implementation is written without TUI frameworks or third-party dependencies to highlight the "zen" of each language's standard library and idioms.
+
+## Implementation Roadmap
+
+All implementations maintain the same CLI API (flags and behavior) for consistency.
 
 Currently implemented:
 
-- **Go (gophertype)** - Full implementation with all features
+- **Go (gophertype)** - Full implementation with all features. Handles raw terminal I/O, escape sequences, and concurrent goroutines for input/display management. Installable via Homebrew.
 
 Coming soon:
 
@@ -113,14 +127,13 @@ Coming soon:
 To add a new language implementation:
 
 1. Create a directory for your implementation (e.g., `crabtype/`)
-2. Add the language name to `LANGUAGES` in `build.sh`
-3. Create a `build_<name>()` function in `build.sh` with your build commands
-4. (Optional) Create a wrapper script if needed (e.g., `crabtype.sh`)
+2. Add the language name to `LANGUAGES` in `zootype.sh`
+3. Create a `build_<name>()` function in `zootype.sh` with your build commands
 
 Example for Rust:
 
 ```sh
-# In build.sh
+# In zootype.sh
 LANGUAGES="gophertype pythontype crabtype"
 
 build_crabtype() {

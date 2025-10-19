@@ -2,12 +2,10 @@ package main
 
 import (
 	_ "embed" // Used for embedding the word list file at compile time
-	"encoding/json"
 	"flag"
 	"fmt"
 	"math/rand"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -32,6 +30,7 @@ var (
 	textSource       = flag.String("source", "", "Text source: words or sentences")
 	textSourceShort  = flag.String("s", "", "Text source: words or sentences")
 	showVersion      = flag.Bool("version", false, "Print version information")
+	showVersionShort = flag.Bool("v", false, "Print version information")
 )
 
 // TextSource represents the type of text used for typing practice.
@@ -42,26 +41,18 @@ const (
 	TextSourceWords     TextSource = "words"
 )
 
-// Config holds runtime configuration with priority: CLI flags > config file > defaults.
+// Config holds runtime configuration from CLI flags and defaults.
 type Config struct {
-	TextSource  TextSource `json:"text_source"`
-	WordCount   int        `json:"word_count"`
-	TimeSeconds int        `json:"time_seconds"`
+	TextSource  TextSource
+	WordCount   int
+	TimeSeconds int
 }
 
-// JSONConfig represents the zootype.json file structure.
-type JSONConfig struct {
-	Binary      string `json:"binary"`
-	TextSource  string `json:"text_source"`
-	WordCount   int    `json:"word_count"`
-	TimeSeconds int    `json:"time_seconds"`
-}
-
-// loadConfig loads configuration with priority: CLI flags > config file > defaults.
+// loadConfig loads configuration from CLI flags and defaults.
 func loadConfig() (Config, error) {
 	flag.Parse()
 
-	if *showVersion {
+	if *showVersion || *showVersionShort {
 		fmt.Printf("gophertype %s (commit: %s, built: %s)\n", version, commit, date)
 		os.Exit(0)
 	}
@@ -72,21 +63,7 @@ func loadConfig() (Config, error) {
 		TimeSeconds: defaultTimeSeconds,
 	}
 
-	// Override with config file if present
-	configPath := getConfigPath()
-	if fileConfig, err := loadJSONConfig(configPath); err == nil {
-		if fileConfig.TextSource != "" {
-			config.TextSource = TextSource(fileConfig.TextSource)
-		}
-		if fileConfig.WordCount > 0 {
-			config.WordCount = fileConfig.WordCount
-		}
-		if fileConfig.TimeSeconds > 0 {
-			config.TimeSeconds = fileConfig.TimeSeconds
-		}
-	}
-
-	// CLI flags take highest priority
+	// Apply CLI flags
 	if *textSource != "" {
 		config.TextSource = TextSource(*textSource)
 	} else if *textSourceShort != "" {
@@ -114,34 +91,6 @@ func loadConfig() (Config, error) {
 	// Otherwise use defaults (30 second timed mode)
 
 	return config, nil
-}
-
-// getConfigPath returns the standard config file path.
-// Uses XDG Base Directory specification: ~/.config/gophertype/config.json
-func getConfigPath() string {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		// Fallback to current directory if home can't be determined
-		return "config.json"
-	}
-
-	configDir := filepath.Join(homeDir, ".config", "gophertype")
-	return filepath.Join(configDir, "config.json")
-}
-
-// loadJSONConfig reads and parses the config file.
-func loadJSONConfig(path string) (*JSONConfig, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	var config JSONConfig
-	if err := json.Unmarshal(data, &config); err != nil {
-		return nil, err
-	}
-
-	return &config, nil
 }
 
 // getSessionText generates practice text based on configured source.
