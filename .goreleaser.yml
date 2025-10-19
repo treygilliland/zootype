@@ -37,15 +37,6 @@ archives:
       - src: gophertype/README.md
         dst: GOPHERTYPE_README.md
 
-blobs:
-  - provider: s3
-    bucket: public
-    region: auto
-    endpoint: https://{{ .Env.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
-    directory: "releases/{{ .Version }}"
-    extra_files:
-      - glob: ./dist/*.tar.gz
-
 brews:
   - repository:
       owner: treygilliland
@@ -55,7 +46,7 @@ brews:
     homepage: https://github.com/treygilliland/zootype
     description: "Terminal-based typing practice tool with real-time WPM and accuracy tracking"
     license: MIT
-    url_template: "https://pub-6085c325f09e4e99bb69108db6dd11a5.r2.dev/releases/{{ .Version }}/{{ .ArtifactName }}"
+    url_template: "https://github.com/treygilliland/zootype/releases/download/{{ .Version }}/{{ .ArtifactName }}"
     install: |
       bin.install "gophertype"
     test: |
