@@ -1,7 +1,7 @@
 package main
 
 import (
-	_ "embed" // Used for embedding the word list file at compile time
+	_ "embed"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -9,31 +9,37 @@ import (
 	"strings"
 )
 
-// topWordsData is embedded at compile time via go:embed.
+// topWordsData is embedded at compile time via go:embed so this must not be moved.
 //
 //go:embed data/top-1000-words.txt
 var topWordsData string
 
-// Configuration defaults
 const (
-	defaultTextSource  = TextSourceWords
-	defaultWordCount   = 50
-	defaultTimeSeconds = 30
+	defaultTextSource     = TextSourceWords
+	defaultWordCount      = 50
+	defaultTimeSeconds    = 30
+	initialTimedWords     = 1000
+	initialTimedSentences = 100
 )
 
-// Command-line flags
 var (
-	timeSeconds      = flag.Int("time", 0, "Timed mode: type for N seconds (default: 30, takes precedence)")
-	timeSecondsShort = flag.Int("t", 0, "Timed mode: type for N seconds (default: 30, takes precedence)")
-	wordCount        = flag.Int("words", 0, "Word count mode: complete N words, untimed")
-	wordCountShort   = flag.Int("w", 0, "Word count mode: complete N words, untimed")
-	textSource       = flag.String("source", "", "Text source: words or sentences")
-	textSourceShort  = flag.String("s", "", "Text source: words or sentences")
-	showVersion      = flag.Bool("version", false, "Print version information")
-	showVersionShort = flag.Bool("v", false, "Print version information")
+	timeSeconds int
+	wordCount   int
+	textSource  string
+	showVersion bool
 )
 
-// TextSource represents the type of text used for typing practice.
+func init() {
+	flag.IntVar(&timeSeconds, "time", 0, "Timed mode: type for N seconds (default: 30)")
+	flag.IntVar(&timeSeconds, "t", 0, "Timed mode: type for N seconds (default: 30)")
+	flag.IntVar(&wordCount, "words", 0, "Word count mode: complete N words, untimed")
+	flag.IntVar(&wordCount, "w", 0, "Word count mode: complete N words, untimed")
+	flag.StringVar(&textSource, "source", "", "Text source: words or sentences")
+	flag.StringVar(&textSource, "s", "", "Text source: words or sentences")
+	flag.BoolVar(&showVersion, "version", false, "Print version information")
+	flag.BoolVar(&showVersion, "v", false, "Print version information")
+}
+
 type TextSource string
 
 const (
@@ -41,18 +47,16 @@ const (
 	TextSourceWords     TextSource = "words"
 )
 
-// Config holds runtime configuration from CLI flags and defaults.
 type Config struct {
 	TextSource  TextSource
 	WordCount   int
 	TimeSeconds int
 }
 
-// loadConfig loads configuration from CLI flags and defaults.
 func loadConfig() (Config, error) {
 	flag.Parse()
 
-	if *showVersion || *showVersionShort {
+	if showVersion {
 		fmt.Printf("gophertype %s (commit: %s, built: %s)\n", version, commit, date)
 		os.Exit(0)
 	}
@@ -63,48 +67,32 @@ func loadConfig() (Config, error) {
 		TimeSeconds: defaultTimeSeconds,
 	}
 
-	// Apply CLI flags
-	if *textSource != "" {
-		config.TextSource = TextSource(*textSource)
-	} else if *textSourceShort != "" {
-		config.TextSource = TextSource(*textSourceShort)
+	if textSource != "" {
+		config.TextSource = TextSource(textSource)
 	}
 
-	// Handle mutually exclusive modes: -t (timed) takes precedence over -w (word count)
-	timeFlag := *timeSeconds
-	if *timeSecondsShort > 0 {
-		timeFlag = *timeSecondsShort
-	}
-	wordFlag := *wordCount
-	if *wordCountShort > 0 {
-		wordFlag = *wordCountShort
-	}
-
-	if timeFlag > 0 {
-		// Timed mode explicitly requested - takes precedence
-		config.TimeSeconds = timeFlag
-	} else if wordFlag > 0 {
-		// Word count mode - disable timer
-		config.WordCount = wordFlag
+	if timeSeconds > 0 {
+		config.TimeSeconds = timeSeconds
+	} else if wordCount > 0 {
+		config.WordCount = wordCount
 		config.TimeSeconds = 0
 	}
-	// Otherwise use defaults (30 second timed mode)
 
 	return config, nil
 }
 
-// getSessionText generates practice text based on configured source.
+// getSessionText generates practice text based on the configured source and mode.
 func getSessionText(config Config) (string, error) {
 	switch config.TextSource {
 	case TextSourceSentences:
 		if config.TimeSeconds > 0 {
-			return generateInfiniteSentences(), nil
+			return generateInitialSentenceText(), nil
 		}
 		sentences := defaultSentences()
 		return sentences[rand.Intn(len(sentences))], nil
 	case TextSourceWords:
 		if config.TimeSeconds > 0 {
-			return generateInfiniteWordText()
+			return generateInitialWordText()
 		}
 		return generateWordText(config.WordCount)
 	default:
@@ -112,8 +100,7 @@ func getSessionText(config Config) (string, error) {
 	}
 }
 
-// generateWordText creates practice text by randomly selecting words.
-// Words can repeat for more frequent practice of common words.
+// generateWordText creates practice text by randomly selecting N words.
 func generateWordText(count int) (string, error) {
 	words, err := loadTopWords()
 	if err != nil {
@@ -132,7 +119,7 @@ func generateWordText(count int) (string, error) {
 	return strings.Join(selectedWords, " "), nil
 }
 
-// loadTopWords parses the embedded word list (one word per line).
+// loadTopWords parses the embedded word list.
 func loadTopWords() ([]string, error) {
 	lines := strings.Split(topWordsData, "\n")
 	var words []string
@@ -151,7 +138,6 @@ func loadTopWords() ([]string, error) {
 	return words, nil
 }
 
-// defaultSentences returns pangrams for sentence-based practice.
 func defaultSentences() []string {
 	return []string{
 		"The quick brown fox jumps over the lazy dog.",
@@ -161,8 +147,8 @@ func defaultSentences() []string {
 	}
 }
 
-// generateInfiniteWordText creates an infinitely long text by repeating words.
-func generateInfiniteWordText() (string, error) {
+// generateInitialWordText generates a large initial buffer for timed mode.
+func generateInitialWordText() (string, error) {
 	words, err := loadTopWords()
 	if err != nil {
 		return "", err
@@ -172,22 +158,20 @@ func generateInfiniteWordText() (string, error) {
 		return "", fmt.Errorf("no words available")
 	}
 
-	// Generate a very long text by repeating words
 	var selectedWords []string
-	for i := 0; i < 1000; i++ { // Generate 1000 words initially
+	for i := 0; i < initialTimedWords; i++ {
 		selectedWords = append(selectedWords, words[rand.Intn(len(words))])
 	}
 
 	return strings.Join(selectedWords, " "), nil
 }
 
-// generateInfiniteSentences creates an infinitely long text by repeating sentences.
-func generateInfiniteSentences() string {
+// generateInitialSentenceText generates a large initial buffer of sentences for timed mode.
+func generateInitialSentenceText() string {
 	sentences := defaultSentences()
 	var selectedSentences []string
 
-	// Generate a very long text by repeating sentences
-	for i := 0; i < 100; i++ { // Generate 100 sentences initially
+	for i := 0; i < initialTimedSentences; i++ {
 		selectedSentences = append(selectedSentences, sentences[rand.Intn(len(sentences))])
 	}
 

@@ -1,4 +1,4 @@
-// gophertype is a terminal-based typing practice tool with real-time WPM and accuracy tracking.
+// gophertype is a terminal-based typing test with real-time feedback and WPM tracking.
 package main
 
 import (
@@ -12,7 +12,6 @@ var (
 	date    = "unknown"
 )
 
-// main entry point
 func main() {
 	if err := run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -20,28 +19,24 @@ func main() {
 	}
 }
 
-// run orchestrates typing sessions in a loop until user chooses to exit.
-// Loads config, generates text, enables raw terminal mode, and runs session loop.
+// orchestrates typing sessions in an infinite loop until the user exits.
 func run() error {
 	config, err := loadConfig()
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	// Set up terminal (alternate screen buffer + raw mode); defer ensures cleanup
 	restore, err := setupTerminal()
 	if err != nil {
 		return fmt.Errorf("failed to setup terminal: %w", err)
 	}
 	defer restore()
 
-	// Use terminal width for display, erroring if it's too narrow
 	termWidth, err := getAndValidateTerminalWidth()
 	if err != nil {
 		return err
 	}
 
-	// Start keyboard reader goroutine
 	keyChan := startKeyboardReader()
 
 	for {
@@ -50,7 +45,6 @@ func run() error {
 			return fmt.Errorf("failed to load session text: %w", err)
 		}
 
-		// Run sessions with current target until user wants new text or exits
 		if !runSessionLoop(target, config, termWidth, keyChan) {
 			return nil
 		}
@@ -62,10 +56,8 @@ func run() error {
 func runSessionLoop(target string, config Config, termWidth int, keyChan <-chan byte) bool {
 	for {
 		state := newTypingState(target, config, termWidth)
-
 		action := runTypingSession(state, keyChan)
 
-		// If interrupted with Ctrl+C, exit immediately
 		if action == ActionInterrupt {
 			return false
 		}

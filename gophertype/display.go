@@ -6,45 +6,42 @@ import (
 	"time"
 )
 
-// ANSI escape codes for terminal colors and formatting
 const (
 	ansiReset            = "\033[0m"
-	ansiGreen            = "\033[32m"
-	ansiRed              = "\033[31m"
-	ansiBlue             = "\033[34m"
-	ansiYellow           = "\033[33m"
 	ansiBold             = "\033[1m"
-	ansiClearToEOL       = "\033[K"      // Clear from cursor to end of line
-	ansiClearScreen      = "\033[2J"     // Clear entire screen
-	ansiCursorUp         = "\033[A"      // Move cursor up one line
-	ansiCursorHome       = "\033[H"      // Move cursor to home position (0,0)
-	ansiAltScreenEnable  = "\033[?1049h" // Enable alternate screen buffer
-	ansiAltScreenDisable = "\033[?1049l" // Disable alternate screen buffer
-)
+	ansiRed              = "\033[31m"
+	ansiGreen            = "\033[32m"
+	ansiYellow           = "\033[33m"
+	ansiBlue             = "\033[34m"
+	ansiClearToEOL       = "\033[K"
+	ansiClearScreen      = "\033[2J"
+	ansiCursorUp         = "\033[A"
+	ansiCursorHome       = "\033[H"
+	ansiAltScreenEnable  = "\033[?1049h"
+	ansiAltScreenDisable = "\033[?1049l"
+	ansiCursorHide       = "\033[?25l"
+	ansiCursorShow       = "\033[?25h"
 
-// Display configuration constants
-const (
-	maxVisibleLines = 3 // Number of text lines shown in scrolling window
-	cursorWidth     = 1 // Characters reserved for cursor display
+	maxVisibleLines = 3
+	cursorWidth     = 1
 )
 
 // wrappedLine represents a single display line with word-wrapping applied.
 type wrappedLine struct {
 	content        []rune // Display characters
-	charIndices    []int  // Maps display position to original text index
+	charIndices    []int  // Maps display position back to original text index
 	hasCursor      bool
 	cursorPosition int
 }
 
-// displayProgress renders color-coded typing progress with word-wrapping
-// in a 3-line scrolling window. Buffers all output to prevent flicker.
+// displayProgress renders the typing interface with color-coded feedback.
+// Buffers all output to prevent flicker, displays in a 3-line scrolling window.
 func displayProgress(state *TypingState) {
 	var buffer strings.Builder
 
-	// Build cursor positioning sequence
+	// Move cursor to start of previous display
 	buffer.WriteString(buildClearSequence(state.lastLineCount))
 
-	// Add timer if in timed mode
 	if state.isTimedMode {
 		buffer.WriteString(formatTimer(state))
 	}
@@ -55,10 +52,10 @@ func displayProgress(state *TypingState) {
 	startLine, endLine := calculateVisibleWindow(lines, maxVisibleLines)
 	buffer.WriteString(renderLines(lines[startLine:endLine], state))
 
-	// Single atomic write to terminal
+	// Single atomic write to prevent flicker
 	fmt.Print(buffer.String())
 
-	// Update line count for next render
+	// Track line count for next render
 	state.lastLineCount = endLine - startLine
 	if state.isTimedMode {
 		state.lastLineCount++ // Account for timer line
@@ -72,9 +69,7 @@ func buildClearSequence(lineCount int) string {
 	}
 
 	var output strings.Builder
-	// Move cursor to start of line first
 	output.WriteString("\r")
-	// Move up lineCount-1 lines (we're already on the last line)
 	for i := 0; i < lineCount-1; i++ {
 		output.WriteString(ansiCursorUp)
 	}
@@ -90,7 +85,7 @@ func formatTimer(state *TypingState) string {
 		remaining = 0
 	}
 
-	// Round up to the next second
+	// Round up to next second for countdown display
 	seconds := int(remaining.Seconds())
 	if remaining.Milliseconds()%1000 > 0 {
 		seconds++
@@ -100,7 +95,7 @@ func formatTimer(state *TypingState) string {
 }
 
 // wrapTextToLines splits text into display lines with word-boundary wrapping.
-// Tracks cursor position and maps display positions back to original text indices.
+// Tracks cursor position and maps each display position back to original text index.
 func wrapTextToLines(text string, cursorPos, lineWidth int) []wrappedLine {
 	words := splitIntoWords(text)
 	var lines []wrappedLine
@@ -120,7 +115,7 @@ func wrapTextToLines(text string, cursorPos, lineWidth int) []wrappedLine {
 			}
 		}
 
-		// Add word character by character
+		// Add word character by character, tracking original indices
 		for _, char := range word {
 			if textIndex == cursorPos {
 				currentLine.hasCursor = true
@@ -146,8 +141,7 @@ func wrapTextToLines(text string, cursorPos, lineWidth int) []wrappedLine {
 	return lines
 }
 
-// splitIntoWords breaks text into words and spaces as separate tokens.
-// This enables word-boundary wrapping (words don't split across lines).
+// splitIntoWords tokenizes text into words and spaces for word-boundary wrapping.
 func splitIntoWords(text string) []string {
 	var words []string
 	currentWord := ""
@@ -171,7 +165,7 @@ func splitIntoWords(text string) []string {
 	return words
 }
 
-// calculateVisibleWindow determines which lines to display in a scrolling window.
+// calculateVisibleWindow determines which lines to display in the scrolling window.
 // Centers the cursor line when possible, adjusting at text boundaries.
 func calculateVisibleWindow(lines []wrappedLine, maxLines int) (start, end int) {
 	cursorLine := 0
@@ -200,13 +194,12 @@ func calculateVisibleWindow(lines []wrappedLine, maxLines int) (start, end int) 
 	return start, end
 }
 
-// renderLines generates the color-coded display string for the given lines.
-// Characters are colored based on correctness: green (correct), red (incorrect), default (untyped).
+// renderLines generates color-coded output for the given lines.
+// Colors: green (correct), red (incorrect), default (not yet typed).
 func renderLines(lines []wrappedLine, state *TypingState) string {
 	var output strings.Builder
 
 	for lineIdx, line := range lines {
-		// Render each character with appropriate color
 		for pos, char := range line.content {
 			// Show cursor before this character if applicable
 			if line.hasCursor && pos == line.cursorPosition {
@@ -235,10 +228,8 @@ func renderLines(lines []wrappedLine, state *TypingState) string {
 			output.WriteString(ansiYellow + ansiBold + "|" + ansiReset)
 		}
 
-		// Clear to end of line to remove any leftover characters
 		output.WriteString(ansiClearToEOL)
 
-		// Add newline between lines
 		if lineIdx < len(lines)-1 {
 			output.WriteString("\r\n")
 		}

@@ -6,7 +6,8 @@ Terminal-based typing test to improve your typing speed without context-switchin
 
 ## Overview
 
-`zootype` is a suite of terminal-based typing test implementations, each written from scratch in a different programming language. The goal is to explore how different languages and ecosystems approach the same technical challenges.
+`zootype` is a suite of terminal-based typing test implementations, each written from scratch in a different programming language.
+`gophertype` is the first and default implementation, with more coming soon.
 
 **Features:**
 
@@ -25,7 +26,7 @@ Each language implementation can be installed separately via Homebrew:
 brew install treygilliland/tap/gophertype
 gophertype
 
-# More implementations coming soon...
+# More coming soon...
 ```
 
 ## Usage
@@ -55,11 +56,11 @@ gophertype
 **Examples:**
 
 ```bash
-gophertype              # default: 30 second timed mode with words
-gophertype -t 60        # 60 second timed mode
-gophertype -w 50        # type 50 words, untimed
-gophertype -s sentences # use sentences instead of words
-gophertype -t 120 -s sentences  # 2 minute test with sentences
+gophertype                  # default: 30 second timed mode with words
+gophertype -t 15            # 15 second timed mode
+gophertype -w 50            # type 50 words, untimed
+gophertype -s sentences     # use sentences instead of words
+gophertype -t 60 -s words   # 1 minute test using words
 ```
 
 **Note:** All future implementations (pythontype, crabtype, etc.) will maintain the same CLI API for consistency.
