@@ -46,7 +46,7 @@ brews:
     homepage: https://github.com/treygilliland/zootype
     description: "Terminal-based typing practice tool with real-time WPM and accuracy tracking"
     license: MIT
-    url_template: "https://github.com/treygilliland/zootype/releases/download/{{ .Version }}/{{ .ArtifactName }}"
+    url_template: "https://github.com/treygilliland/zootype/releases/download/v{{ .Version }}/{{ .ArtifactName }}"
     install: |
       bin.install "gophertype"
     test: |
