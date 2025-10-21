@@ -1,9 +1,4 @@
-from pythontype.main import greet
-
-
-def main():
-    print(greet("pythontype"))
-
+from pythontype.main import main
 
 if __name__ == "__main__":
     main()

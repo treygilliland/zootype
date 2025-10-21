@@ -1,4 +1,4 @@
-// gophertype is a terminal-based typing test with real-time feedback and WPM tracking.
+// gophertype - Go implementation of zootype typing test
 package main
 
 import (
