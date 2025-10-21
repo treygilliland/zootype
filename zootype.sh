@@ -10,7 +10,7 @@ set -e
 # 1. Add it to LANGUAGES list below
 # 2. Create a build_<name>() function below that
 
-LANGUAGES="gophertype pythontype cameltype rattype crabtype"
+LANGUAGES="gophertype pythontype cameltype rattype crabtype dinotype"
 DEFAULT_BINARY="gophertype"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -70,6 +70,15 @@ build_crabtype() {
     rm -f "$BIN_DIR/crabtype"
     cp "target/release/crabtype" "$BIN_DIR/crabtype"
     chmod +x "$BIN_DIR/crabtype"
+}
+
+build_dinotype() {
+    echo "Building dinotype..."
+    cd "$SCRIPT_DIR/dinotype"
+    deno compile --output dinotype main.ts
+    rm -f "$BIN_DIR/dinotype"
+    cp "dinotype" "$BIN_DIR/dinotype"
+    chmod +x "$BIN_DIR/dinotype"
 }
 
 build_binary() {

@@ -34,6 +34,10 @@ rattype/rattype
 target/
 Cargo.lock
 
+# Deno/TypeScript
+dinotype/dinotype
+deno.lock
+
 # OS
 .DS_Store
 *.swp
