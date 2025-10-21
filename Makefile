@@ -14,6 +14,7 @@ test: build
 	@./bin/rattype --version | grep -q "rattype" && echo "✓ rattype"
 	@./bin/crabtype --version | grep -q "crabtype" && echo "✓ crabtype"
 	@./bin/dinotype --version | grep -q "dinotype" && echo "✓ dinotype"
+	@./bin/eggtype --version | grep -q "eggtype" && echo "✓ eggtype"
 	@echo "All tests passed!"
 
 versions: build
@@ -23,6 +24,7 @@ versions: build
 	@./bin/rattype --version
 	@./bin/crabtype --version
 	@./bin/dinotype --version
+	@./bin/eggtype --version
 
 install:
 	@./zootype.sh install

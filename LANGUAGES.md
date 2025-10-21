@@ -4,24 +4,26 @@
 
 ```
 $ ls -lh bin/
-35K   rattype      (C++)
-397K  crabtype     (Rust)
-464K  cameltype    (OCaml)
+97B   pythontype   (Python wrapper)
+221B  eggtype      (Shell script)
+52K   rattype      (C++)
+415K  crabtype     (Rust)
+482K  cameltype    (OCaml)
 2.5M  gophertype   (Go)
 69M   dinotype     (Deno/TypeScript)
-97B   pythontype   (Python wrapper)
 ```
 
 ## Compilation & Runtime
 
 | Language   | Size | Compilation          | Runtime                            |
 | ---------- | ---- | -------------------- | ---------------------------------- |
-| C++        | 35K  | AOT → native code    | Minimal (stack unwinding)          |
-| Rust       | 397K | AOT → native code    | Minimal (panic handler, no GC)     |
-| OCaml      | 464K | AOT → native code    | Bundled (GC + runtime system)      |
+| Python     | 97B  | Interpreted bytecode | External (requires Python 3.10+)   |
+| Shell      | 221B | Interpreted script   | External (POSIX shell)             |
+| C++        | 52K  | AOT → native code    | Minimal (stack unwinding)          |
+| Rust       | 415K | AOT → native code    | Minimal (panic handler, no GC)     |
+| OCaml      | 482K | AOT → native code    | Bundled (GC + runtime system)      |
 | Go         | 2.5M | AOT → native code    | Bundled (GC + goroutine scheduler) |
 | TypeScript | 69M  | JIT (V8)             | Bundled (entire V8 + Deno runtime) |
-| Python     | 97B  | Interpreted bytecode | External (requires Python 3.10+)   |
 
 ## Dynamic Dependencies & Syscalls
 
@@ -63,9 +65,10 @@ Trade-off: massive binary size for zero external dependencies. The binary runs o
 
 ## Why Each Language
 
+- **Shell**: Universal availability, scripting simplicity
+- **Python**: Rapid development, dynamic typing
 - **C++**: Maximum control, manual memory management
 - **Rust**: Memory safety without GC via ownership system
 - **OCaml**: Functional programming, GC for safety
 - **Go**: Built for concurrency, goroutines and channels
 - **TypeScript**: Familiar syntax, massive ecosystem, async/await
-- **Python**: Rapid development, dynamic typing

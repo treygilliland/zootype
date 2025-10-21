@@ -10,7 +10,7 @@ set -e
 # 1. Add it to LANGUAGES list below
 # 2. Create a build_<name>() function below that
 
-LANGUAGES="gophertype pythontype cameltype rattype crabtype dinotype"
+LANGUAGES="gophertype pythontype cameltype rattype crabtype dinotype eggtype"
 DEFAULT_BINARY="gophertype"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -79,6 +79,14 @@ build_dinotype() {
     rm -f "$BIN_DIR/dinotype"
     cp "dinotype" "$BIN_DIR/dinotype"
     chmod +x "$BIN_DIR/dinotype"
+}
+
+build_eggtype() {
+    echo "Building eggtype..."
+    cd "$SCRIPT_DIR/eggtype"
+    chmod +x main.sh
+    rm -f "$BIN_DIR/eggtype"
+    cp "main.sh" "$BIN_DIR/eggtype"
 }
 
 build_binary() {

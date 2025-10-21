@@ -72,7 +72,33 @@ gophertype -t 60 -s words   # 1 minute test using words
 ```bash
 make            # build all binaries to bin/
 make run        # build and run gophertype
+make test       # run smoke tests
 make clean      # remove bin/ and build artifacts
+```
+
+### Adding New Implementations
+
+To add a new language implementation:
+
+1. Create a directory for your implementation (e.g., `crabtype/`)
+2. Add the language name to `LANGUAGES` in `zootype.sh`
+3. Create a `build_<name>()` function in `zootype.sh` with your build commands
+4. Create a GitHub Actions workflow in `.github/workflows/release-<name>.yml` for releases
+5. Update the `.gitignore` and `Makefile` clean target as needed
+
+Example for Rust:
+
+```sh
+# In zootype.sh
+LANGUAGES="gophertype pythontype crabtype"
+
+build_crabtype() {
+    echo "Building crabtype..."
+    cd "$SCRIPT_DIR/crabtype"
+    cargo build --release
+    rm -f "$BIN_DIR/crabtype"
+    cp target/release/crabtype "$BIN_DIR/crabtype"
+}
 ```
 
 ### Testing Multiple Implementations
@@ -126,63 +152,31 @@ Each implementation is written without TUI frameworks or third-party dependencie
 
 ## Implementation Roadmap
 
-All implementations maintain the same CLI API (flags and behavior) for consistency.
+All implementations will maintain the same CLI flags and behavior for consistency.
 
-Currently implemented:
+**Currently implemented:**
 
-- **Go (gophertype)** - Full implementation with all features. Handles raw terminal I/O, escape sequences, and concurrent goroutines for input/display management. Installable via Homebrew.
+- **Go (gophertype)** - Reference implementation with all features. Handles raw terminal I/O, escape sequences, and concurrent goroutines for input/display management. Installable via Homebrew.
 
-Coming soon:
+**Coming soon:**
 
-- **Python (pythontype)** - In development
-
-### Adding New Implementations
-
-To add a new language implementation:
-
-1. Create a directory for your implementation (e.g., `crabtype/`)
-2. Add the language name to `LANGUAGES` in `zootype.sh`
-3. Create a `build_<name>()` function in `zootype.sh` with your build commands
-4. Create a GitHub Actions workflow in `.github/workflows/release-<name>.yml` for releases
-5. Update the `.gitignore` and `Makefile` clean target if needed
-
-Example for Rust:
-
-```sh
-# In zootype.sh
-LANGUAGES="gophertype pythontype crabtype"
-
-build_crabtype() {
-    echo "Building crabtype..."
-    cd "$SCRIPT_DIR/crabtype"
-    cargo build --release
-    rm -f "$BIN_DIR/crabtype"
-    cp target/release/crabtype "$BIN_DIR/crabtype"
-}
-```
-
-See `.github/workflows/release-cameltype.yml` for an example release workflow.
-
-### Coming Soon
-
-- JavaScript/TypeScript (Dinotype)
-- Rust (Crabtype)
-- OCaml (Cameltype)
-- C++ ([Rattype](https://news.ycombinator.com/item?id=44631253))
+- Python (pythontype)
+- OCaml (cameltype)
+- C++ (rattype)
+- Rust (crabtype)
+- TypeScript (dinotype)
+- Shell (eggtype)
 
 ### Maybe One Day
 
-- Zig (Iguanatype)
 - Swift (Swifttype)
-  - Swift vs Swallow, [see heated debate here](https://github.com/swiftlang/swift/issues/44791)
-- Shell (Eggtype)
+  - [See heated debate on Swift vs Swallow here](https://github.com/swiftlang/swift/issues/44791)
+- Zig (Iguanatype)
 - PHP (Elephanttype)
 - Elixir (Phoenixtype)
-- SQL (Ducktype)
-  - Obviously will have to get creative here
 - Dart/Flutter (Hummingbirdtype)
 
-These need a better mascot before I consider them:
+Languages I want to build in, but need a better mascot:
 
 - Haskell (Lamb(da)type)
 - C (Bugtype)
