@@ -10,7 +10,7 @@ set -e
 # 1. Add it to LANGUAGES list below
 # 2. Create a build_<name>() function below that
 
-LANGUAGES="gophertype pythontype cameltype"
+LANGUAGES="gophertype pythontype cameltype rattype"
 DEFAULT_BINARY="gophertype"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -51,6 +51,16 @@ build_cameltype() {
     rm -f "$BIN_DIR/cameltype"
     cp "_build/default/main.exe" "$BIN_DIR/cameltype"
     chmod +x "$BIN_DIR/cameltype"
+}
+
+build_rattype() {
+    echo "Building rattype..."
+    cd "$SCRIPT_DIR/rattype"
+    make clean
+    make
+    rm -f "$BIN_DIR/rattype"
+    cp "rattype" "$BIN_DIR/rattype"
+    chmod +x "$BIN_DIR/rattype"
 }
 
 build_binary() {

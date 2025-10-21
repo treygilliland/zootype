@@ -24,6 +24,12 @@ _build/
 *.install
 *.merlin
 
+# C++
+*.o
+*.a
+*.dSYM/
+rattype/rattype
+
 # OS
 .DS_Store
 *.swp
