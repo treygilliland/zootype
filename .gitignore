@@ -19,6 +19,11 @@ build/
 *.test
 *.out
 
+# OCaml
+_build/
+*.install
+*.merlin
+
 # OS
 .DS_Store
 *.swp

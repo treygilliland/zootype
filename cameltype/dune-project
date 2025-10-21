@@ -1,0 +1,4 @@
+(lang dune 3.0)
+(name cameltype)
+(version 0.1.0)
+

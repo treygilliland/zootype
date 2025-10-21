@@ -97,6 +97,19 @@ To uninstall the wrapper:
 make uninstall  # removes zootype wrapper only
 ```
 
+### Releases
+
+Each language implementation has independent versioning and releases. To create a release:
+
+**For gophertype:**
+
+```bash
+git tag gophertype-v1.0.0
+git push origin gophertype-v1.0.0
+```
+
+Each tag triggers a separate GitHub Actions workflow that builds and publishes the release for that specific implementation. This allows each implementation to evolve at its own pace with independent version numbers.
+
 ## Motivation
 
 I love exploring new programming languages and tinkering with keyboards. I've spent a lot of time on [monkeytype.com](https://monkeytype.com/) and wanted a way to practice typing speed directly from my terminal without context-switching.
@@ -130,6 +143,8 @@ To add a new language implementation:
 1. Create a directory for your implementation (e.g., `crabtype/`)
 2. Add the language name to `LANGUAGES` in `zootype.sh`
 3. Create a `build_<name>()` function in `zootype.sh` with your build commands
+4. Create a GitHub Actions workflow in `.github/workflows/release-<name>.yml` for releases
+5. Update the `.gitignore` and `Makefile` clean target if needed
 
 Example for Rust:
 
@@ -141,24 +156,27 @@ build_crabtype() {
     echo "Building crabtype..."
     cd "$SCRIPT_DIR/crabtype"
     cargo build --release
+    rm -f "$BIN_DIR/crabtype"
     cp target/release/crabtype "$BIN_DIR/crabtype"
 }
 ```
+
+See `.github/workflows/release-cameltype.yml` for an example release workflow.
 
 ### Coming Soon
 
 - JavaScript/TypeScript (Dinotype)
 - Rust (Crabtype)
-- Zig (Iguanatype)
 - OCaml (Cameltype)
 - C++ ([Rattype](https://news.ycombinator.com/item?id=44631253))
 
 ### Maybe One Day
 
-- PHP (Elephanttype)
+- Zig (Iguanatype)
 - Swift (Swifttype)
   - Swift vs Swallow, [see heated debate here](https://github.com/swiftlang/swift/issues/44791)
 - Shell (Eggtype)
+- PHP (Elephanttype)
 - Elixir (Phoenixtype)
 - SQL (Ducktype)
   - Obviously will have to get creative here

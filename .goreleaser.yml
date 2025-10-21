@@ -2,6 +2,13 @@ version: 2
 
 project_name: gophertype
 
+git:
+  tag_sort: -version:refname
+  prerelease_suffix: "-"
+  ignore_tags:
+    - "cameltype-*"
+    - "pythontype-*"
+
 before:
   hooks:
     - sh -c "cd gophertype && go mod tidy"
@@ -46,7 +53,7 @@ brews:
     homepage: https://github.com/treygilliland/zootype
     description: "Terminal-based typing practice tool with real-time WPM and accuracy tracking"
     license: MIT
-    url_template: "https://github.com/treygilliland/zootype/releases/download/v{{ .Version }}/{{ .ArtifactName }}"
+    url_template: "https://github.com/treygilliland/zootype/releases/download/gophertype-v{{ .Version }}/{{ .ArtifactName }}"
     install: |
       bin.install "gophertype"
     test: |
@@ -72,3 +79,7 @@ release:
   draft: false
   prerelease: auto
   name_template: "gophertype v{{.Version}}"
+  header: |
+    ## gophertype v{{.Version}}
+
+    Terminal-based typing test written in Go.

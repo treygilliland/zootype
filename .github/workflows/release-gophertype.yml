@@ -1,13 +1,13 @@
-name: Release
+name: Release gophertype
 
 on:
   push:
     tags:
-      - "v*"
+      - "gophertype-v*"
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to release (e.g., v0.0.1)"
+        description: "Version to release (e.g., gophertype-v0.0.1)"
         required: true
         type: string
       branch:

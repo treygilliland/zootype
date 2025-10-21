@@ -1,0 +1,15 @@
+opam-version: "2.0"
+name: "cameltype"
+version: "0.1.0"
+synopsis: "Terminal-based typing test written in OCaml"
+maintainer: "Trey Gilliland"
+authors: ["Trey Gilliland"]
+homepage: "https://github.com/treygilliland/zootype"
+build: [
+  ["dune" "build" "-p" name "-j" jobs]
+]
+depends: [
+  "ocaml" {>= "4.08"}
+  "dune" {>= "3.0"}
+]
+

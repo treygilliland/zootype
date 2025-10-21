@@ -14,5 +14,6 @@ uninstall:
 
 clean:
 	rm -rf bin
+	rm -rf cameltype/_build
 
 

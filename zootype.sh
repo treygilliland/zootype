@@ -10,7 +10,7 @@ set -e
 # 1. Add it to LANGUAGES list below
 # 2. Create a build_<name>() function below that
 
-LANGUAGES="gophertype pythontype"
+LANGUAGES="gophertype pythontype cameltype"
 DEFAULT_BINARY="gophertype"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -42,6 +42,15 @@ build_pythontype() {
         echo "exec uv --directory \"$SCRIPT_DIR/pythontype\" run pythontype \"\$@\""
     } > "$BIN_DIR/pythontype"
     chmod +x "$BIN_DIR/pythontype"
+}
+
+build_cameltype() {
+    echo "Building cameltype..."
+    cd "$SCRIPT_DIR/cameltype"
+    opam exec -- dune build
+    rm -f "$BIN_DIR/cameltype"
+    cp "_build/default/main.exe" "$BIN_DIR/cameltype"
+    chmod +x "$BIN_DIR/cameltype"
 }
 
 build_binary() {
