@@ -16,5 +16,6 @@ clean:
 	rm -rf bin
 	rm -rf cameltype/_build
 	cd rattype && make clean 2>/dev/null || true
+	cd crabtype && cargo clean 2>/dev/null || true
 
 

@@ -10,7 +10,7 @@ set -e
 # 1. Add it to LANGUAGES list below
 # 2. Create a build_<name>() function below that
 
-LANGUAGES="gophertype pythontype cameltype rattype"
+LANGUAGES="gophertype pythontype cameltype rattype crabtype"
 DEFAULT_BINARY="gophertype"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -61,6 +61,15 @@ build_rattype() {
     rm -f "$BIN_DIR/rattype"
     cp "rattype" "$BIN_DIR/rattype"
     chmod +x "$BIN_DIR/rattype"
+}
+
+build_crabtype() {
+    echo "Building crabtype..."
+    cd "$SCRIPT_DIR/crabtype"
+    cargo build --release
+    rm -f "$BIN_DIR/crabtype"
+    cp "target/release/crabtype" "$BIN_DIR/crabtype"
+    chmod +x "$BIN_DIR/crabtype"
 }
 
 build_binary() {
